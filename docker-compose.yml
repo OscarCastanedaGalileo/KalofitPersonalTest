@@ -1,0 +1,38 @@
+services:
+  database:
+    image: postgres:18.0
+    environment:
+      - POSTGRES_DB=${PG_DB:-pg}
+      - POSTGRES_USER=${PG_USER:-pg}
+      - POSTGRES_PASSWORD=${PG_PASSWORD:-pg_secret}
+      # - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - ./pg-db-data:/var/lib/postgresql
+    ports:
+      - 5432:5432
+
+  backend:
+    image: node:22.20-alpine
+    working_dir: /app
+    user: node
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./backend:/app
+    command: npm run start
+
+  frontend:
+    image: node:22.20-alpine
+    working_dir: /app
+    user: node
+    ports:
+      - "3000:5173"
+    volumes:
+      - ./frontend/:/app
+    command: npm run dev
+
+secrets:
+  postgresql_password:
+    file: pg_pass
+
+
