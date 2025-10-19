@@ -12,6 +12,7 @@
   var foodsRouter = require("./routes/foods");
   var foodCategoriesRouter = require("./routes/foodCategories");
   var authRouter = require('./routes/auth');
+  var foodLogRouter = require('./routes/foodLogs');
 
   const sequelize = require("./config/database");
   const foodsApiRouter = require("./routes/foods.route");
@@ -93,5 +94,6 @@ app.use(cors({
   app.use("/api/foods", foodsApiRouter);
   app.use("/food-categories", foodCategoriesRouter);
   app.use('/auth', authRouter);
+  app.use('/food-logs', foodLogRouter);
 
   module.exports = app;
