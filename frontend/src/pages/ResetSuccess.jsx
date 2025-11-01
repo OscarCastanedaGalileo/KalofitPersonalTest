@@ -5,13 +5,11 @@ import {
   Button,
   Paper,
 } from "@mui/material";
-import { useNavigate, useLocation } from "react-router";
+import { useNavigate } from "react-router";
 import { BannerTop } from "../components/BannerTop";
 
 export function ResetSuccess() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const email = location.state?.email || "your email";
 
   return (
     <Box sx={{ bgcolor: "background.default", minHeight: "100vh" }}>

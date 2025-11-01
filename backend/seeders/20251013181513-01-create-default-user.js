@@ -1,19 +1,20 @@
 'use strict';
 
+const bcrypt = require('bcrypt');
 module.exports = {
   async up (queryInterface, Sequelize) {
+    const passwordHash = await bcrypt.hash('systempassword', 10);
     await queryInterface.bulkInsert('Users', [{
-      id: 1,
-      name: 'System Data',     // <- CAMBIO: Se combinó firstName y lastName en 'name'
+      name: 'System Data',
       email: 'system@kalo.fit',
-      hashPassword: 'no-password-required', // <- CAMBIO: El nombre de la columna es 'hashPassword'
-      isConfirmed: true,        // <- AÑADIDO: Para completar el esquema de la tabla
+      hashPassword: passwordHash,
+      isConfirmed: true,
       createdAt: new Date(),
       updatedAt: new Date()
     }], {});
   },
 
   async down (queryInterface, Sequelize) {
-    await queryInterface.bulkDelete('Users', { id: 1 });
+    await queryInterface.bulkDelete('Users', { email: 'system@kalo.fit' });
   }
 };

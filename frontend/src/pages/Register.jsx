@@ -13,7 +13,7 @@ import { Visibility, VisibilityOff, PhotoCamera, Person, Mail, Lock } from "@mui
 
 import { useNavigate } from "react-router";
 import { BannerTop } from "../components/BannerTop";
-
+import { register } from "../api/auth";
 export function Register() {
   const [preview, setPreview] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
@@ -34,14 +34,21 @@ export function Register() {
     setPreview(URL.createObjectURL(file));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-
-    const email = form.email;
-
-    // Aquí iría tu lógica de registro
-    navigate('/verify-email', { state: { email: email } });
+    try {
+      await register({
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        confirmPassword: form.confirmPassword
+      });
+      navigate('/verify-email', { state: { email: form.email } });
+    } catch (err) {
+      if (err?.data?.message || err.message) {
+        alert(`Error: ${err?.data?.message || err.message}`);
+      }
+    }
   }
 
   return (
@@ -184,7 +191,7 @@ export function Register() {
       </Box>
 
       {/* 🔹 Botón inferior */}
-      <Paper
+      <Box
         elevation={6}
         sx={{
           position: "fixed",
@@ -196,8 +203,7 @@ export function Register() {
           borderTopLeftRadius: 16,
           borderTopRightRadius: 16,
           p: 2,
-          pb: `calc(16px + env(safe-area-inset-bottom))`,
-          bgcolor: "background.paper",
+          pb: `calc(16px + env(safe-area-inset-bottom))`
         }}
       >
         <Button
@@ -210,7 +216,7 @@ export function Register() {
         >
           Register
         </Button>
-      </Paper>
+      </Box>
 
       <Box sx={{ height: 96 }} />
     </Box>

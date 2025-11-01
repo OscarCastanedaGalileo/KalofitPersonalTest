@@ -1,0 +1,38 @@
+* {
+  /* box-sizing: border-box; */
+}
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Oxygen, Ubuntu,
+    Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+}
+
+/* .app {
+  max-width: 393px;
+  width: 100%;
+  min-height: 100dvh;
+
+  margin: 0 auto;
+
+  padding: 0 16px 96px;
+  position: relative;
+} */
+
+/* .content {
+  display: block;
+}
+
+@supports (padding: env(safe-area-inset-bottom)) {
+  .app {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+} */

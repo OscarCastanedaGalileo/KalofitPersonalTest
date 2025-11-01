@@ -23,7 +23,14 @@ module.exports = {
           model: 'Food',
           key: 'id',
         },
-        allowNull: false,
+        allowNull: true,
+      },
+      recipeId: {
+        type: Sequelize.INTEGER,
+        references: {
+          model: 'Recipes',
+          key: 'id',
+        },
       },
       quantity: {
         type: Sequelize.DECIMAL,

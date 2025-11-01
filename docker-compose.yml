@@ -5,6 +5,7 @@ services:
       - POSTGRES_DB=${PG_DB:-pg}
       - POSTGRES_USER=${PG_USER:-pg}
       - POSTGRES_PASSWORD=${PG_PASSWORD:-pg_secret}
+      - TZ=America/Guatemala
       # - PGDATA=/var/lib/postgresql/data/pgdata
     volumes:
       - ./pg-db-data:/var/lib/postgresql
@@ -15,11 +16,15 @@ services:
     image: node:22.20-alpine
     working_dir: /app
     user: node
+    environment:
+      - TZ=America/Guatemala
     ports:
       - "3001:3000"
     volumes:
       - ./backend:/app
-    command: npm run start
+    command: npm run dev
+    depends_on:
+      - database
 
   frontend:
     image: node:22.20-alpine
@@ -30,9 +35,7 @@ services:
     volumes:
       - ./frontend/:/app
     command: npm run dev
-
-secrets:
-  postgresql_password:
-    file: pg_pass
+    depends_on:
+      - backend
 
 

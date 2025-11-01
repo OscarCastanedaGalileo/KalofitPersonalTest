@@ -10,14 +10,20 @@ import {
 import { Mail } from "@mui/icons-material";
 import { useNavigate } from "react-router";
 import { BannerTop } from "../components/BannerTop"; // ✅ default import
+import { sendResetCode } from "../api/auth";
 
 export function ForgotPassword() {
   const [email, setEmail] = useState("");
   const navigate = useNavigate();
 
-  const handleSendCode = () => {
-    navigate("/reset-password", { state: { email } });
-    console.log("Send reset code to:", email);
+  const handleSendCode = async () => {
+    try {
+      const response = await sendResetCode(email);
+      alert(response?.message || 'Reset code sent to your email');
+      navigate("/reset-password", { state: { email } });
+    } catch (err) {
+      alert(`Error sending reset code: ${err?.data?.message || err.message}`);
+    }
   };
 
   return (
@@ -51,7 +57,7 @@ export function ForgotPassword() {
           onChange={(e) => setEmail(e.target.value)}
           fullWidth
           required
-          sx={{ maxWidth: 320 }}
+          // sx={{ maxWidth: 320 }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">

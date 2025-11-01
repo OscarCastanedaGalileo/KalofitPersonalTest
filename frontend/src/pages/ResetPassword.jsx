@@ -12,13 +12,14 @@ import {
 import { Lock, Visibility, VisibilityOff } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router";
 import { BannerTop } from "../components/BannerTop";
+import { resetPassword } from "../api/auth";
 
 export function ResetPassword() {
 	const navigate = useNavigate();
 
 	// store code as six individual digits for separate inputs
 	const [codeDigits, setCodeDigits] = React.useState(() => Array(6).fill(""));
-	const [values, setValues] = React.useState({ password: "", confirm: "" });
+	const [form, setForm] = React.useState({ password: "", confirm: "" });
 	const [errors, setErrors] = React.useState({ code: "", password: "", confirm: "" });
 	const [showPassword, setShowPassword] = React.useState(false);
 	const [showConfirm, setShowConfirm] = React.useState(false);
@@ -29,7 +30,7 @@ export function ResetPassword() {
 
 		const handleChange = (field) => (e) => {
 			const val = e.target.value;
-			setValues((v) => ({ ...v, [field]: val }));
+			setForm((v) => ({ ...v, [field]: val }));
 			setErrors((s) => ({ ...s, [field]: "" }));
 		};
 
@@ -91,12 +92,12 @@ export function ResetPassword() {
 				ok = false;
 			}
 
-		if (!values.password || values.password.length < 6) {
+		if (!form.password || form.password.length < 6) {
 			next.password = "Password must be at least 6 characters";
 			ok = false;
 		}
 
-		if (values.password !== values.confirm) {
+		if (form.password !== form.confirm) {
 			next.confirm = "Passwords do not match";
 			ok = false;
 		}
@@ -113,15 +114,18 @@ export function ResetPassword() {
 		setSubmitting(true);
 		try {
 			// Replace with your API call to verify code and update password
-			const payload = { code: codeDigits.join(""), password: values.password };
-			console.log("Resetting password with:", payload);
-			// Simulate async call
-			await new Promise((res) => setTimeout(res, 800));
-			// Navigate to login or show success UI
+			const payload = {
+        email: email,
+        code: codeDigits.join(""),
+        password: form.password,
+        confirmPassword: form.confirm
+      };
+      const response = await resetPassword(payload);
+      alert(response?.message || 'Password has been reset successfully');
 			navigate("/reset-success");
 		} catch (err) {
+      alert(`Reset password failed: ${err?.data?.message || err.message}`);
 			console.error(err);
-			// Handle server errors and show messages
 		} finally {
 			setSubmitting(false);
 		}
@@ -146,14 +150,14 @@ export function ResetPassword() {
 					justifyContent: "center",
 				}}
 			>
-				<Box sx={{ width: "100%", maxWidth: 360, display: "flex", flexDirection: "column", gap: 2 }}>
+				<Box sx={{ width: "100%", display: "flex", flexDirection: "column", gap: 2 }}>
 					<Typography variant="body2" color="text.secondary" sx={{ textAlign: "center" }}>
 						Please enter the password reset code that we have sent to your email, {email}.
 					</Typography>
 
 
 					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 8 }} onPaste={handleCodePaste}>
-						<Box sx={{ display: 'flex', gap: 3, justifyContent: 'center' }}>
+						<Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
 							{codeDigits.map((digit, idx) => (
 								<TextField
 									key={idx}
@@ -161,7 +165,11 @@ export function ResetPassword() {
 									value={digit}
 									onChange={handleCodeChange(idx)}
 									onKeyDown={handleCodeKeyDown(idx)}
-									inputProps={{ inputMode: 'numeric', pattern: '\\d*', maxLength: 1, style: { textAlign: 'center', fontSize: '1.1rem' } }}
+									inputProps={{
+                    inputMode: 'numeric',
+                    pattern: '\\d*',
+                    maxLength: 2,
+                    style: { textAlign: 'center', fontSize: '1.1rem' } }}
 									sx={{ width: 64 }}
 									variant="outlined"
 									size="small"
@@ -180,7 +188,7 @@ export function ResetPassword() {
 					<TextField
 						label="New password"
 						type={showPassword ? "text" : "password"}
-						value={values.password}
+						value={form.password}
 						onChange={handleChange("password")}
 						fullWidth
 						required
@@ -209,7 +217,7 @@ export function ResetPassword() {
 					<TextField
 						label="Confirm password"
 						type={showConfirm ? "text" : "password"}
-						value={values.confirm}
+						value={form.confirm}
 						onChange={handleChange("confirm")}
 						fullWidth
 						required
@@ -237,8 +245,7 @@ export function ResetPassword() {
 				</Box>
 			</Box>
 
-			<Paper
-				elevation={6}
+			<Box
 				sx={{
 					position: "fixed",
 					left: 0,
@@ -264,7 +271,7 @@ export function ResetPassword() {
 				>
 					{submitting ? "Updating…" : "Reset"}
 				</Button>
-			</Paper>
+			</Box>
 
 			<Box sx={{ height: 96 }} />
 		</Box>

@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
+import { useTheme } from '@mui/material/styles';
 
 export default function SearchBar({ onSearch, placeholder = "Buscar alimento..." }) {
   const [q, setQ] = useState("");
   const t = useRef(null);
+  const theme = useTheme();
 
   useEffect(() => {
     // limpiar cualquier timeout previo
@@ -27,8 +29,14 @@ export default function SearchBar({ onSearch, placeholder = "Buscar alimento..."
       value={q}
       onChange={(e) => setQ(e.target.value)}
       placeholder={placeholder}
-      style={{ padding: 12, width: "100%", borderRadius: 8, border: "1px solid #2A3A3A",
-               background: "#0f1f1f", color: "#e5ffe5" }}
+      style={{
+        padding: 12,
+        width: '100%',
+        borderRadius: 8,
+        border: `1px solid ${theme.palette.outlineVariant.main}`,
+        background: theme.palette.surfacePrimary.main,
+        color: theme.palette.text.primary,
+      }}
     />
   );
 }

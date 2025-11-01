@@ -15,16 +15,17 @@ module.exports = (sequelize, DataTypes) => {
   }
   Food.init(
     {
-      name: { type: DataTypes.STRING },
-      caloriesPerGram: { type: DataTypes.DECIMAL },
-      foodCategoryId: { type: DataTypes.BIGINT, allowNull: false },
-      createdBy: { type: DataTypes.BIGINT, allowNull: false },
-      isCustom: { type: DataTypes.BOOLEAN, defaultValue: true },
+      name: DataTypes.STRING,
+      caloriesPerGram: DataTypes.DECIMAL,
+      foodCategoryId: DataTypes.BIGINT,
+      createdBy: DataTypes.BIGINT,
+      isCustom: DataTypes.BOOLEAN,
     },
     {
       sequelize,
       modelName: "Food",
-      tableName: "Food",
+      paranoid: true, // enables soft delete (changes DELETE for UPDATE)
+      deletedAt: 'deletedAt', // states the name of the column to be used
     }
   );
   return Food;

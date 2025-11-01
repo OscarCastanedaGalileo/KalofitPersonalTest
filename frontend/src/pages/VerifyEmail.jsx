@@ -1,24 +1,52 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   AppBar,
   Toolbar,
   IconButton,
   Typography,
+  Link,
   Box,
   Button,
 } from "@mui/material";
 import { ArrowBackIosNew } from "@mui/icons-material";
-import { useNavigate, useLocation } from "react-router";
-import { BannerTop } from "../components/BannerTop";
+import { useNavigate, useLocation, Link as LinkRouter } from "react-router";
 
+import { BannerTop } from "../components/BannerTop";
+import { useLoaderData } from "react-router";
+import { verifyEmail, sendVerificationEmail } from "../api/auth";
 export function VerifyEmail() {
   const navigate = useNavigate();
   const location = useLocation();
   const email = location.state?.email || "your email";
+  const { token } = useLoaderData();
+  const [message, setMessage] = useState({});
 
-  const handleResend = () => {
-    // Aquí iría tu lógica para reenviar el correo
-    console.log("Resending verification link to:", email);
+  useEffect(() => {
+    if (!token) return;
+    let isMounted = true;
+    verifyEmail(token)
+      .then(() => {
+        if (!isMounted) return;
+        setMessage({ type: "success", text: "Email verified successfully! You can now log in." });
+        // navigate("/login");
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        setMessage({ type: "error", text: `Verification failed: ${err?.data?.message || err.message}` });
+      });
+
+    return () => {
+      isMounted = false; // cleanup
+    };
+  }, [token, navigate]);
+
+  const handleResend = async () => {
+    try {
+      const response = await sendVerificationEmail(email);
+      alert(response?.message || 'Verification email resent. Please check your inbox.');
+    } catch (error) {
+      alert(`Error resending verification email: ${error?.data?.message || error.message}`);
+    }
   };
 
   return (
@@ -38,16 +66,27 @@ export function VerifyEmail() {
           minHeight: "70vh",
         }}
       >
-
-        <Typography
-          variant="body1"
-          color="text.secondary"
-          sx={{ maxWidth: 340, lineHeight: 1.6 }}
-        >
-          We have sent an account activation link
-          to your email, <b>{email}</b>. Please
-          activate your account before logging in
-        </Typography>
+        {
+          !token ? (
+            <Typography
+              variant="body1"
+              color="text.secondary"
+              sx={{ maxWidth: 340, lineHeight: 1.6 }}
+            >
+              We have sent an account activation link
+              to your email, <b>{email}</b>. Please
+              activate your account before logging in
+            </Typography>
+          ) : (
+            <Typography
+              variant="body1"
+              color="text.secondary"
+              sx={{ maxWidth: 340, lineHeight: 1.6 }}
+            >
+              {message.text}
+            </Typography>
+          )
+        }
       </Box>
 
       {/* 🔹 Botones inferiores */}
@@ -81,21 +120,19 @@ export function VerifyEmail() {
         >
           Go to Login
         </Button>
-
-        <Button
-          variant="outlined"
-          size="large"
-          fullWidth
-          onClick={handleResend}
-          sx={{
-            borderRadius: 2,
-            py: 1.5,
-            textTransform: "none",
-            fontWeight: "bold",
-          }}
-        >
-          Resend
-        </Button>
+                <Box sx={{ textAlign: "center", mt: 2 }}>
+                  <Link
+                    // component={LinkRouter}
+                    // to="/forgot-password"
+                    onClick={handleResend}
+                    underline="hover"
+                    variant="body2"
+                    color="primary"
+                    sx={{ fontWeight: 500 }}
+                  >
+                    Resend
+                  </Link>
+                </Box>
       </Box>
 
       <Box sx={{ height: 100 }} />

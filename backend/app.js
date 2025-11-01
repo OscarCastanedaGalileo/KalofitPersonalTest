@@ -1,73 +1,75 @@
-  var express = require("express");
-  var path = require("path");
-  var bodyParser = require('body-parser');
-  var cookieParser = require("cookie-parser");
-  var morgan = require("morgan");
-  const logger = require("./config/logger");
-  const cors = require("cors");
-  require("dotenv").config();
+var express = require("express");
+var path = require("path");
+var bodyParser = require("body-parser");
+var cookieParser = require("cookie-parser");
+var morgan = require("morgan");
+const logger = require("./config/logger");
+const cors = require("cors");
+const crypto = require("crypto");
+require("dotenv").config();
 
-  var indexRouter = require("./routes/index");
-  var usersRouter = require("./routes/users");
-  var foodsRouter = require("./routes/foods");
-  var foodCategoriesRouter = require("./routes/foodCategories");
-  var authRouter = require('./routes/auth');
-  var foodLogRouter = require('./routes/foodLogs');
+const { APP_ORIGIN = "http://localhost:3000" } = process.env;
 
-  const sequelize = require("./config/database");
-  const foodsApiRouter = require("./routes/foods.route");
+const { requireAuth } = require("./middlewares/requireAuth");
 
-  const startDatabase = async () => {
-    try {
-      await sequelize.authenticate();
-      logger.info("Connection to the database has been established successfully.");
-    } catch (error) {
-      logger.error("Unable to connect to the database:", error);
-    }
-  };
+var indexRouter = require("./routes/index");
+var usersRouter = require("./routes/users");
+// var foodsRouter = require("./routes/foods");
+var foodCategoriesRouter = require("./routes/foodCategories");
+var authRouter = require("./routes/auth");
+var waterRouter = require("./routes/water");
+const foodlogsRouter = require("./routes/foodlogs");
+const categoriesRouter = require("./routes/categories");
+const foodsRouter = require("./routes/foods");
+const summaryRouter = require("./routes/summary");
+// const sequelize = require("./config/database");
+// const foodsApiRouter = require("./routes/foods.route");
+const alimentosRouter = require("./routes/alimentos");
+const foodunitsRouter = require("./routes/foodunits");
+const tagsRouter = require("./routes/tags");
+const profileRouter = require("./routes/profile");
 
-  sequelize.sync({alter: true})
-  .then(() => console.log("Database synced"))
-  .catch(err => console.log("Error syncing database:", err));
+const app = express();
 
-  startDatabase();
+app.set("trust proxy", true);
+app.use(express.json());
 
-  var app = express();
+app.use(
+  cors({
+    origin: APP_ORIGIN,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"]
+  })
+);
 
-  app.set('trust proxy', true);
-  app.use(express.json());
+// Middleware para asignar reqId e IP limpia
+app.use((req, res, next) => {
+  req.id = crypto.randomUUID();
+  const rawIp = (req.ip || req.connection?.remoteAddress || "").toString();
+  req.clientIp = rawIp;
+  next();
+});
 
-app.use(cors({
-  origin: "*",
-}));
-
-
-  // Middleware para asignar reqId e IP limpia
-  app.use((req, res, next) => {
-    req.id = crypto.randomUUID();
-    const rawIp = (req.ip || req.connection?.remoteAddress || '').toString();
-    req.clientIp = rawIp;
-    next();
-  });
-
-
-  // Morgan personalizado en JSON -> Winston
-  app.use(
-    morgan((tokens, req, res) => {
+// Morgan personalizado en JSON -> Winston
+app.use(
+  morgan(
+    (tokens, req, res) => {
       const logObj = {
         timestamp: new Date().toISOString(),
-        level: 'info',
+        level: "info",
         pid: process.pid,
         ip: req.clientIp,
         reqId: req.id,
         method: tokens.method(req, res),
         url: tokens.url(req, res),
         status: Number(tokens.status(req, res)),
-        responseTime: parseFloat(tokens['response-time'](req, res)),
-        userAgent: tokens['user-agent'](req, res),
+        responseTime: parseFloat(tokens["response-time"](req, res)),
+        userAgent: tokens["user-agent"](req, res),
       };
       return JSON.stringify(logObj);
-    }, {
+    },
+    {
       stream: {
         write: (message) => {
           // convierte el string JSON de Morgan a objeto y lo pasa a Winston
@@ -79,21 +81,25 @@ app.use(cors({
           }
         },
       },
-    })
-  );
+    }
+  )
+);
 
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: false }));
-  app.use(cookieParser());
-  app.use(bodyParser.json());
-  app.use(express.static(path.join(__dirname, "public")));
+app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, "public")));
 
-  app.use("/", indexRouter);
-  app.use("/users", usersRouter);
-  app.use("/foods", foodsRouter); // router used here
-  app.use("/api/foods", foodsApiRouter);
-  app.use("/food-categories", foodCategoriesRouter);
-  app.use('/auth', authRouter);
-  app.use('/food-logs', foodLogRouter);
-
-  module.exports = app;
+app.use("/", indexRouter);
+app.use("/users", usersRouter);
+app.use("/foods", requireAuth, foodsRouter);
+app.use("/food-categories", requireAuth, foodCategoriesRouter);
+app.use("/auth", authRouter);
+app.use("/water",requireAuth, waterRouter);
+app.use('/api/alimentos',requireAuth, alimentosRouter);
+app.use("/api/categories", requireAuth, categoriesRouter);
+app.use("/api/foodlogs", requireAuth, foodlogsRouter);
+app.use("/api/summary", requireAuth, summaryRouter);
+app.use("/api/foodunits", requireAuth, foodunitsRouter);
+app.use("/api/me/tags", requireAuth, tagsRouter);
+app.use("/api/me/profile", requireAuth, profileRouter);
+module.exports = app;

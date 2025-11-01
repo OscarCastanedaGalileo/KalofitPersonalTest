@@ -20,18 +20,34 @@ import {
 } from "@mui/icons-material";
 import { useNavigate, Link as LinkRouter } from "react-router";
 import { BannerTop } from "../components/BannerTop";
+import useAuthToken from "../hooks/useAuthToken";
 
 export function Login() {
   const navigate = useNavigate();
-  const [values, setValues] = React.useState({ email: "", password: "" });
+  const [form, setForm] = React.useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = React.useState(false);
+  const { login } = useAuthToken();
 
   const handleChange = (field) => (e) =>
-    setValues((v) => ({ ...v, [field]: e.target.value }));
+    setForm((v) => ({ ...v, [field]: e.target.value }));
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Logging in with:", values);
+    try {
+      const result = await login({
+        email: form.email,
+        password: form.password,
+      });
+
+      if (result) {
+        // Pequeño delay para asegurar que el token se aplique
+        setTimeout(() => {
+          navigate('/');
+        }, 100);
+      }
+    } catch (err) {
+      alert(`Login failed: ${err?.data?.message || err.message}`);
+    }
   };
 
   return (
@@ -43,6 +59,7 @@ export function Login() {
         component="form"
         onSubmit={handleSubmit}
         noValidate
+        id="login-form"
         sx={{
           display: "flex",
           flexDirection: "column",
@@ -56,62 +73,65 @@ export function Login() {
           justifyContent: "center",
         }}
       >
-        {/* Campos de entrada */}
         <Box
           sx={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-            width: "100%",
-            maxWidth: 360,
+          border: "none",
+          boxShadow: "none",
+          p: 2,
+          mt: 0,
+          width: "100%",
+          borderRadius: 2
           }}
         >
-          <TextField
-            label="Email"
-            type="email"
-            value={values.email}
-            onChange={handleChange("email")}
-            fullWidth
-            required
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Mail />
-                </InputAdornment>
-              ),
-            }}
-          />
+          {/* Campos de entrada */}
+              <TextField
+                label="Email"
+                margin="normal"
+                type="email"
+                value={form.email}
+                onChange={handleChange("email")}
+                fullWidth
+                required
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Mail />
+                    </InputAdornment>
+                  ),
+                }}
+              />
 
-          <TextField
-            label="Password"
-            type={showPassword ? "text" : "password"}
-            value={values.password}
-            onChange={handleChange("password")}
-            fullWidth
-            required
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <MuiIconButton
-                    onClick={() => setShowPassword((s) => !s)}
-                    edge="start"
-                    tabIndex={-1}
-                    aria-label={
-                      showPassword ? "Hide password" : "Show password"
-                    }
-                  >
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                  </MuiIconButton>
-                </InputAdornment>
-              ),
-              endAdornment: (
-                <InputAdornment position="end">
-                  <Lock />
-                </InputAdornment>
-              ),
-            }}
-          />
-        </Box>
+              <TextField
+                label="Password"
+                type={showPassword ? "text" : "password"}
+                value={form.password}
+                onChange={handleChange("password")}
+                fullWidth
+                margin="normal"
+                required
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <MuiIconButton
+                        onClick={() => setShowPassword((s) => !s)}
+                        edge="start"
+                        tabIndex={-1}
+                        aria-label={
+                          showPassword ? "Hide password" : "Show password"
+                        }
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </MuiIconButton>
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <Lock />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Box>
       </Box>
 
       {/* 🔹 Botón inferior y enlace */}
@@ -131,6 +151,7 @@ export function Login() {
         <Button
           type="submit"
           variant="contained"
+          form="login-form"
           size="large"
           fullWidth
           sx={{

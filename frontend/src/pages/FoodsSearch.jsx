@@ -23,7 +23,7 @@ export default function FoodsSearch() {
 
   return (
     <main style={{ maxWidth: 640, margin: "0 auto", padding: 16 }}>
-      <h1 style={{ color: "#67E67C" }}>Buscar alimentos</h1>
+      <h1 style={{ color: "#67E67C" }}>Search Foods</h1>
       <SearchBar onSearch={doSearch} />
       <FoodList items={items} loading={loading} error={error} />
     </main>

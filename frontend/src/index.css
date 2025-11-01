@@ -1,15 +1,53 @@
 :root {
   --font-family: 'Roboto', sans-serif;
-  color-scheme: dark; 
-  background: #0b1717; 
+  color-scheme: dark;
+  background: #0b1717;
   color: #e8ffe8;
+  --page-gutter: 16px;
+}
+
+
+html,
+body,
+#root {
+  height: 100%;
 }
 
 .search-input::placeholder { color: #8BA7A7; }
 
 body {
   margin: 0;
-  font-family: var(--font-family);
+  padding: 0 var(--page-x) var(--page-b); /* margenes */
+  background: #122b2a; /* fondo */
+  color: #cfe8db;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+.app {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.content {
+  flex: 1;
+  padding-bottom: 14px;
+}
+
+/* responsive para movil */
+/* @media (min-width: 900px) {
+  #root {
+    display: grid;
+    place-items: center;
+  }
+  .app {
+    width: 420px;
+  }
+
+  .page-shell {
+    width: min(100% - 32px, 393px);
+    max-width: 393px;
+    margin: 0 auto;
+  }
+} */

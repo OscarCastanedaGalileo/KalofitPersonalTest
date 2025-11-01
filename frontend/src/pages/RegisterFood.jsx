@@ -1,21 +1,27 @@
 import { useState, useEffect } from "react";
-import { Box, Typography, TextField, Button, MenuItem, Select, InputLabel, FormControl } from "@mui/material";
+import { Box, Typography, TextField, Button, MenuItem, Select, InputLabel, FormControl, IconButton } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack"; // BACK ARROW ICON
+import { useNavigate } from "react-router";
+import { backendClient } from "../api/backendClient";
+
 const BASE = import.meta.env.VITE_API_BASE_URL;
+
 const RegisterFood = () => {
   const [food, setFood] = useState("");
   const [caloriesPerGram, setCaloriesPerGram] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [categories, setCategories] = useState([]);
 
-  const user = 1; // id from the logged user, will be replaced according to real context
-  const isCustom = true; // always true for user-created foods
+  const navigate = useNavigate();
+  const user = 1;
+  const isCustom = true;
 
   // Fetch categories on component mount
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await fetch(`${BASE}/food-categories`); // endpoint for categories
-        const data = await res.json();
+        // const res = await fetch(`${BASE}/food-categories`);
+        const data = await backendClient.get('/food-categories');
         setCategories(data);
       } catch (error) {
         console.error("Error fetching categories", error);
@@ -33,61 +39,106 @@ const RegisterFood = () => {
     const data = {
       name: food,
       caloriesPerGram: parseFloat(caloriesPerGram),
-      foodCategoryId: categoryId, // send the correct id
+      foodCategoryId: categoryId,
       createdBy: user,
       isCustom,
     };
 
     try {
-      const response = await fetch(`${BASE}/foods`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
 
-      if (response.ok) {
+      await backendClient.post('/foods', data)
+
         alert("New Food Registered Successfully!");
-        setFood("");
-        setCaloriesPerGram("");
-        setCategoryId("");
-      } else {
-        const err = await response.json();
-        alert("Error registering food: " + (err.error || "Unknown error"));
-      }
+        // REDIRECTS TO THE FOODS LIST PAGE IF SUCCESSFUL
+        navigate("/foods-list");
     } catch (error) {
       console.error(error);
       alert("Server connection error");
     }
   };
 
+  const inputStyles = {
+    "& .MuiOutlinedInput-root": {
+      backgroundColor: "#122B2A",
+      color: "white",
+      "& fieldset": { borderColor: "#555" },
+      "&:hover fieldset": { borderColor: "#777" },
+    },
+    "& .MuiInputLabel-root": {
+      color: "#aaa !important",
+    },
+    "& .Mui-focused .MuiInputLabel-root": {
+      color: "#67E67C",
+    },
+    "& .Mui-focused .MuiOutlinedInput-notchedOutline": {
+      borderColor: "#67E67C !important",
+    },
+    "& .MuiSvgIcon-root": {
+      color: "#aaa",
+    },
+  };
+
   return (
-    <Box sx={{ maxWidth: 500, margin: "0 auto", padding: 2 }}>
-      <Typography variant="h5" gutterBottom>
-        Register New Food
-      </Typography>
+    <Box
+      sx={{
+        p: 2,
+        backgroundColor: "#122B2A",
+        minHeight: "100vh",
+        color: "white",
+        maxWidth: 600,
+        margin: "0 auto",
+      }}
+    >
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 4, py: 1 }}>
+        <IconButton color="inherit" onClick={() => navigate(-1)} sx={{ color: "white" }}>
+          <ArrowBackIcon />
+        </IconButton>
+        <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+          Register Food
+        </Typography>
+        <Box sx={{ width: 48 }} />
+      </Box>
 
-      <TextField label="Food Name" fullWidth margin="normal" value={food} onChange={(e) => setFood(e.target.value)} />
+      <Box
+        component="form"
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 3,
+          maxWidth: "100%",
+          mx: "auto",
+        }}
+      >
+        <TextField label="Food Name" fullWidth margin="normal" value={food} onChange={(e) => setFood(e.target.value)} sx={inputStyles} />
 
-      <TextField label="Calories per gram" type="number" fullWidth margin="normal" value={caloriesPerGram} onChange={(e) => setCaloriesPerGram(e.target.value)} />
+        <TextField label="Calories per gram" type="number" fullWidth margin="normal" value={caloriesPerGram} onChange={(e) => setCaloriesPerGram(e.target.value)} sx={inputStyles} />
 
-      <FormControl fullWidth margin="normal">
-        <InputLabel>Category</InputLabel>
-        <Select
-          value={categoryId}
-          onChange={(e) => setCategoryId(e.target.value)} // this will be the category id
-          label="Category"
+        <FormControl fullWidth margin="normal" sx={inputStyles}>
+          <InputLabel>Category</InputLabel>
+          <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} label="Category">
+            {categories.map((cat) => (
+              <MenuItem key={cat.id} value={cat.id}>
+                {cat.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <Button
+          variant="contained"
+          fullWidth
+          size="large"
+          sx={{
+            mt: 2,
+            backgroundColor: "#67E67C",
+            color: "black",
+            "&:hover": { backgroundColor: "#429d51" },
+          }}
+          onClick={handleRegister}
         >
-          {categories.map((cat) => (
-            <MenuItem key={cat.id} value={cat.id}>
-              {cat.name} {/* what the user sees */}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-
-      <Button variant="contained" color="primary" fullWidth sx={{ mt: 2 }} onClick={handleRegister}>
-        Register
-      </Button>
+          REGISTER FOOD
+        </Button>
+      </Box>
     </Box>
   );
 };

@@ -1,7 +1,7 @@
-import { Box, Button, Paper, Typography } from "@mui/material";
+import { Box, Button, Paper, Typography, Link } from "@mui/material";
 import Logo from "../assets/logo.svg"; // Importa tu SVG como componente React
 
-import { Link } from "react-router";
+import { Link as LinkRouter } from "react-router";
 
 export function Welcome() {
   return (
@@ -42,8 +42,7 @@ export function Welcome() {
         </Typography>
       </Box>
 
-      <Paper
-        elevation={8}
+      <Box
         sx={{
           position: "fixed",
           bottom: 0,
@@ -67,7 +66,7 @@ export function Welcome() {
             color="primary"
             size="large"
             fullWidth
-            component={Link}
+            component={LinkRouter}
             to="/register"
             sx={{
               borderRadius: 2,
@@ -88,10 +87,20 @@ export function Welcome() {
               boxShadow: "none",
             }}
           >
-            Already have an account? <Link to="/login">Sign In</Link>
+            Already have an account?
+            <Link
+              component={LinkRouter}
+              to="/login"
+              underline="hover"
+              variant="body2"
+              color="primary"
+              sx={{ fontWeight: 500, marginLeft: 0.5 }}
+            >
+              Sign In
+            </Link>
           </Box>
         </Box>
-      </Paper>
+      </Box>
     </Box>
   );
 }
