@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { useTheme, alpha } from '@mui/material/styles';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import dayjs from 'dayjs';
 
 export default function SummaryChart({ data = [], height = 180, title = "Calories" }) {
   const theme = useTheme();
@@ -13,11 +14,7 @@ export default function SummaryChart({ data = [], height = 180, title = "Calorie
       .slice()
       .sort((a, b) => new Date(a.bucket) - new Date(b.bucket))
       .map(item => ({
-        date: new Date(item.bucket).toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: '2-digit'
-        }),
+        date: dayjs(item.bucket).format('MMM DD YY'),
         calories: Math.round(item.calories || 0),
         fullDate: item.bucket
       }));

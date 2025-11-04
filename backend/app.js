@@ -7,6 +7,10 @@ const logger = require("./config/logger");
 const cors = require("cors");
 const crypto = require("crypto");
 require("dotenv").config();
+const reminderRoutes = require('./routes/reminders');
+
+// Configuración global de Luxon - Zona horaria America/Guatemala
+require('./config/luxon');
 
 const { APP_ORIGIN = "http://localhost:3000" } = process.env;
 
@@ -28,11 +32,15 @@ const alimentosRouter = require("./routes/alimentos");
 const foodunitsRouter = require("./routes/foodunits");
 const tagsRouter = require("./routes/tags");
 const profileRouter = require("./routes/profile");
+const exportRouter = require("./routes/export");
 
+const recipesRouter = require("./routes/recipes");
+const foodLogFromRecipeRouter = require("./routes/foodlogFromRecipe");
 const app = express();
 
 app.set("trust proxy", true);
 app.use(express.json());
+
 
 app.use(
   cors({
@@ -56,7 +64,7 @@ app.use(
   morgan(
     (tokens, req, res) => {
       const logObj = {
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toString(),
         level: "info",
         pid: process.pid,
         ip: req.clientIp,
@@ -102,4 +110,8 @@ app.use("/api/summary", requireAuth, summaryRouter);
 app.use("/api/foodunits", requireAuth, foodunitsRouter);
 app.use("/api/me/tags", requireAuth, tagsRouter);
 app.use("/api/me/profile", requireAuth, profileRouter);
+app.use('/api/reminders', reminderRoutes);
+app.use('/api/export', requireAuth, exportRouter);
+app.use("/api/recipes", requireAuth, recipesRouter);
+app.use("/api/foodlog-from-recipe", requireAuth, foodLogFromRecipeRouter);
 module.exports = app;

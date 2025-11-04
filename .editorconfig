@@ -1,0 +1,42 @@
+# En la raíz del monorepo
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Indentación por defecto (2 espacios va muy bien en JS/TS y la mayoría del tooling)
+indent_style = space
+indent_size = 2
+
+# Archivos que suelen requerir TAB o reglas especiales
+[Makefile]
+indent_style = tab
+
+# Markdown: NO recortar espacios al final (pueden forzar saltos de línea)
+[*.md]
+trim_trailing_whitespace = false
+
+# YAML: casi siempre 2 espacios
+[*.yml]
+indent_size = 2
+
+# JSON/JSONC: 2 espacios; aplica a package.json, tsconfig.json, etc.
+[*.{json,jsonc}]
+indent_size = 2
+
+# TypeScript/JavaScript/React
+[*.{js,jsx,ts,tsx}]
+indent_size = 2
+max_line_length = off
+
+# Shell, Docker, envs
+[*.{sh,bash,Dockerfile}]
+end_of_line = lf
+
+# Propiedades/ini: a veces interesa preservar espacios
+[*.{ini,properties}]
+trim_trailing_whitespace = false
+

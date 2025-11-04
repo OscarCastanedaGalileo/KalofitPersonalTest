@@ -12,10 +12,20 @@ module.exports = (sequelize, DataTypes) => {
       email: DataTypes.STRING,
       hashPassword: DataTypes.STRING,
       isConfirmed: DataTypes.BOOLEAN,
+      // new role field: 'basic' or 'admin'
+      role: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: 'basic',
+        validate: {
+          isIn: [['basic', 'admin']]
+        }
+      },
     },
     {
       sequelize,
       modelName: "User",
+      paranoid: true, // Enable soft delete
     }
   );
   return User;

@@ -11,6 +11,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "createdBy",
         as: "creator",
       });
+      Food.hasMany(models.FoodUnit, {
+        foreignKey: "foodId",
+        as: "units",
+      });
     }
   }
   Food.init(
@@ -25,7 +29,7 @@ module.exports = (sequelize, DataTypes) => {
       sequelize,
       modelName: "Food",
       paranoid: true, // enables soft delete (changes DELETE for UPDATE)
-      deletedAt: 'deletedAt', // states the name of the column to be used
+      deletedAt: "deletedAt", // states the name of the column to be used
     }
   );
   return Food;

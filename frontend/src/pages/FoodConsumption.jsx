@@ -110,11 +110,18 @@ const FoodConsumption = () => {
     foodId: '',
     unitId: '',
     quantity: '1',
-    grams: '',
-    calories: '',
+    grams: '0',
+    calories: '0',
     notes: '',
     tags: [],
   });
+
+  // Monitorear cambios en los valores relevantes para el cálculo
+  useEffect(() => {
+    if (formData.foodId && formData.unitId && formData.quantity) {
+      calculateCalories();
+    }
+  }, [formData.foodId, formData.unitId, formData.quantity]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -126,27 +133,48 @@ const FoodConsumption = () => {
     if (field === 'foodId' && value) {
       loadFoodUnits(value);
     }
-
-    // Calcular calorías automáticamente cuando cambian los valores relevantes
-    if (['foodId', 'unitId', 'quantity'].includes(field)) {
-      setTimeout(() => calculateCalories(), 100); // Pequeño delay para que el estado se actualice
-    }
   };
 
   // Cargar unidades disponibles para un alimento específico
   const loadFoodUnits = async (foodId) => {
     try {
+      console.log('Cargando unidades para alimento:', foodId);
       const unitsData = await getFoodUnitsByFoodId(foodId);
+      console.log('Unidades recibidas:', unitsData);
+      
+      if (!Array.isArray(unitsData) || unitsData.length === 0) {
+        console.warn('No se encontraron unidades para el alimento');
+        setError('No hay unidades definidas para este alimento');
+        setFoodUnits([]);
+        return;
+      }
+
+      // Verificar la estructura de los datos
+      const validUnits = unitsData.every(unit => 
+        unit && typeof unit === 'object' && 
+        'unitId' in unit && 
+        'gramsPerUnit' in unit
+      );
+
+      if (!validUnits) {
+        console.error('Estructura de unidades inválida:', unitsData);
+        setError('Error en la estructura de unidades');
+        return;
+      }
+
       setFoodUnits(unitsData);
+      setError(null);
+
       // Reset unit selection when food changes
       setFormData(prev => ({
         ...prev,
         unitId: '',
-        grams: '',
-        calories: ''
+        grams: '0',
+        calories: '0'
       }));
     } catch (err) {
       console.error('Error loading food units:', err);
+      setError('Error al cargar las unidades del alimento');
       setFoodUnits([]);
     }
   };
@@ -154,36 +182,124 @@ const FoodConsumption = () => {
   // Calcular calorías automáticamente
   const calculateCalories = () => {
     const { foodId, unitId, quantity } = formData;
+    
+    console.log('Calculando calorías con:', { foodId, unitId, quantity });
 
+    // Validar que tenemos todos los valores necesarios
     if (!foodId || !unitId || !quantity) {
-      setFormData(prev => ({ ...prev, grams: '', calories: '' }));
+      console.log('Faltan campos requeridos');
+      setFormData(prev => ({ ...prev, grams: '0', calories: '0' }));
       return;
     }
 
-    const food = foods.find(f => f.id.toString() === foodId);
-    const foodUnit = foodUnits.find(fu => fu.unitId.toString() === unitId);
+    // Convertir a números y validar
+    const foodIdNum = parseInt(foodId);
+    const unitIdNum = parseInt(unitId);
+    const quantityNum = parseFloat(quantity);
 
-    if (!food || !foodUnit || !food.caloriesPerGram) {
-      setFormData(prev => ({ ...prev, grams: '', calories: '' }));
+    if (isNaN(foodIdNum) || isNaN(unitIdNum) || isNaN(quantityNum)) {
+      console.error('Error en conversión de números:', { foodId, unitId, quantity });
+      setFormData(prev => ({ ...prev, grams: '0', calories: '0' }));
       return;
     }
 
-    const qty = parseFloat(quantity) || 0;
-    const grams = qty * foodUnit.gramsPerUnit;
-    const calories = grams * food.caloriesPerGram;
+    // Buscar el alimento
+    const food = foods.find(f => f.id === foodIdNum);
+    if (!food) {
+      console.error('No se encontró el alimento:', foodIdNum);
+      setFormData(prev => ({ ...prev, grams: '0', calories: '0' }));
+      setError('No se encontró el alimento');
+      return;
+    }
 
-    setFormData(prev => ({
-      ...prev,
-      grams: grams.toFixed(2),
-      calories: calories.toFixed(0)
-    }));
+    // Buscar la unidad y sus datos de conversión
+    const foodUnit = foodUnits.find(fu => Number(fu.unitId) === unitIdNum);
+    if (!foodUnit || !foodUnit.gramsPerUnit) {
+      console.error('No se encontró la unidad o sus datos de conversión:', {
+        unitId: unitIdNum,
+        foodUnits: foodUnits
+      });
+      setFormData(prev => ({ ...prev, grams: '0', calories: '0' }));
+      setError('No se encontró la información de la unidad');
+      return;
+    }
+
+    try {
+      // Obtener los valores necesarios para el cálculo
+      const gramsPerUnit = Number(foodUnit.gramsPerUnit);
+      const caloriesPerGram = Number(food.caloriesPerGram);
+
+      console.log('Datos para cálculo:', {
+        quantityNum,
+        gramsPerUnit,
+        caloriesPerGram,
+        food,
+        foodUnit
+      });
+
+      // Calcular gramos totales
+      const totalGrams = quantityNum * gramsPerUnit;
+      if (isNaN(totalGrams) || totalGrams <= 0) {
+        throw new Error('Error al calcular los gramos totales');
+      }
+
+      // Calcular calorías totales
+      const totalCalories = totalGrams * caloriesPerGram;
+      if (isNaN(totalCalories) || totalCalories <= 0) {
+        throw new Error('Error al calcular las calorías totales');
+      }
+
+      console.log('Resultados:', {
+        totalGrams,
+        totalCalories
+      });
+
+      // Actualizar el formulario con los resultados
+      setFormData(prev => ({
+        ...prev,
+        grams: totalGrams.toFixed(1),
+        calories: totalCalories.toFixed(0)
+      }));
+
+      // Limpiar error si existe
+      setError(null);
+
+    } catch (error) {
+      console.error('Error en cálculos:', error);
+      setFormData(prev => ({
+        ...prev,
+        grams: '0',
+        calories: '0'
+      }));
+      setError('Error en los cálculos: ' + error.message);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validación completa de los campos requeridos
     if (!formData.foodId || !formData.unitId || !formData.quantity) {
       setError('Por favor completa todos los campos requeridos');
+      return;
+    }
+
+    // Validar que los cálculos se hayan realizado
+    if (!formData.grams || !formData.calories || 
+        formData.grams === '0' || formData.calories === '0') {
+      setError('Error en el cálculo de calorías. Por favor verifica los valores');
+      return;
+    }
+
+    // Validar que los valores sean números válidos
+    const quantity = parseFloat(formData.quantity);
+    const grams = parseFloat(formData.grams);
+    const calories = parseFloat(formData.calories);
+
+    if (isNaN(quantity) || quantity <= 0 ||
+        isNaN(grams) || grams <= 0 ||
+        isNaN(calories) || calories <= 0) {
+      setError('Los valores ingresados no son válidos');
       return;
     }
 
@@ -194,13 +310,15 @@ const FoodConsumption = () => {
       const data = {
         foodId: parseInt(formData.foodId),
         unitId: parseInt(formData.unitId),
-        grams: parseFloat(formData.grams),
-        quantity: parseFloat(formData.quantity),
-        totalCalories: parseFloat(formData.calories),
+        grams: grams,
+        quantity: quantity,
+        totalCalories: calories,
         consumedAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
         notes: formData.notes || null,
         tags: formData.tags.length > 0 ? formData.tags : null,
       };
+
+      console.log('Enviando datos:', data);
 
       if (isEditing) {
         await updateFoodLog(id, data);
@@ -335,25 +453,44 @@ const FoodConsumption = () => {
                     helperText="How many units will you consume"
                   />
 
-                  {/* Gramos (calculado automáticamente) */}
-                  <TextField
-                    label="Total Grams"
-                    type="number"
-                    value={formData.grams}
-                    disabled
-                    fullWidth
-                    helperText="Automatically calculated based on quantity and selected unit"
-                  />
+                  {/* Resumen de cálculos */}
+                  <Paper 
+                    elevation={0} 
+                    sx={{ 
+                      p: 2, 
+                      bgcolor: 'primary.light',
+                      color: 'primary.contrastText',
+                      borderRadius: 2
+                    }}
+                  >
+                    <Stack spacing={2}>
+                      {/* Total de gramos */}
+                      <Box>
+                        <Typography variant="body2" sx={{ mb: 0.5 }}>
+                          Total Grams
+                        </Typography>
+                        <Typography variant="h6" component="div" sx={{ fontWeight: 'medium' }}>
+                          {formData.grams ? `${Number(formData.grams).toFixed(1)}g` : '0g'}
+                        </Typography>
+                      </Box>
 
-                  {/* Calorías (calculado automáticamente) */}
-                  <TextField
-                    label="Total Calories"
-                    type="number"
-                    value={formData.calories}
-                    disabled
-                    fullWidth
-                    helperText="Automatically calculated based on grams and calories per gram of the food"
-                  />
+                      {/* Separador */}
+                      <Box sx={{ width: '100%', height: '1px', bgcolor: 'primary.main', opacity: 0.2 }} />
+
+                      {/* Total de calorías */}
+                      <Box>
+                        <Typography variant="body2" sx={{ mb: 0.5 }}>
+                          Total Calories
+                        </Typography>
+                        <Typography variant="h4" component="div" sx={{ fontWeight: 'bold' }}>
+                          {formData.calories ? Math.round(Number(formData.calories)) : '0'}
+                        </Typography>
+                        <Typography variant="body2">
+                          calories
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Paper>
 
                   {/* Tags */}
                   <Autocomplete

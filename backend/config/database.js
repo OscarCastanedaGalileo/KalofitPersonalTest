@@ -21,6 +21,10 @@ const sequelize = new Sequelize(
   {
     host: process.env.DB_HOST,      // El host (ej: 'database')
     dialect: process.env.DB_DIALECT,  // El dialecto (ej: 'postgres')
+    timezone: 'America/Guatemala', // Configurar zona horaria de Guatemala
+    dialectOptions: {
+      timezone: 'America/Guatemala', // Para PostgreSQL específicamente
+    },
     logging: false // Opcional: deshabilita los logs de SQL en la consola para no saturar
   }
 );

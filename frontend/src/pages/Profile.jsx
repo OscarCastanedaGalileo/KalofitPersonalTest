@@ -329,6 +329,15 @@ const Profile = () => {
                       'Update Profile'
                     )}
                   </Button>
+
+                  <Button
+                    variant="outlined"
+                    size="large"
+                    onClick={() => navigate('/export-history')}
+                    sx={{ mt: 2 }}
+                  >
+                    Export History
+                  </Button>
                 </Stack>
               </Box>
             </>

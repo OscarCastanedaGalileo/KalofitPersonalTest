@@ -45,6 +45,7 @@ import utc from 'dayjs/plugin/utc';
 
 dayjs.extend(utc);
 import { useNavigate } from 'react-router';
+import ConsumptionTypeModal from './components/ConsumptionTypeModal';
 
 
 const QUICK_AMOUNTS = [250, 500, 750];
@@ -96,6 +97,7 @@ function App() {
   // Obtener el tema actual para leer el modo
   const theme = useTheme();
   const navigate = useNavigate();
+  const [isConsumptionModalOpen, setIsConsumptionModalOpen] = useState(false);
 
   const [water, setWater] = useState(1.9); // litros
   const [progressWater, setProgressWater] = useState(0);
@@ -109,7 +111,26 @@ function App() {
 
   // Estado para comidas del día
   const [todayMeals, setTodayMeals] = useState([]);
-  const calories = totalConsumedCalories;
+
+  // Handlers para el modal de consumo
+  const handleConsumptionModalOpen = () => {
+    setIsConsumptionModalOpen(true);
+  };
+
+  const handleConsumptionModalClose = () => {
+    setIsConsumptionModalOpen(false);
+  };
+
+  const handleFoodConsumption = () => {
+    setIsConsumptionModalOpen(false);
+    navigate('/food-consumption/new');
+  };
+
+  const handleRecipeConsumption = () => {
+    setIsConsumptionModalOpen(false);
+    navigate('/recipe-consumption/new');
+  };
+  const calories = totalConsumedCalories.toFixed(2);
   const caloriesGoal = dailyGoalCalories;
   const caloriesPct = Math.round((calories / caloriesGoal) * 100);
 
@@ -384,9 +405,8 @@ function App() {
             <Typography variant="subtitle1">Meals</Typography>
             <IconButton
               size="small"
-              onClick={() => navigate('/food-consumption/new')}
+              onClick={handleConsumptionModalOpen}
               sx={{
-                // ml: '30px',
                 color: '#67E67C',
                 '&:hover': {
                   bgcolor: 'rgba(103, 230, 124, 0.1)',
@@ -396,6 +416,12 @@ function App() {
               <AddRoundedIcon />
             </IconButton>
           </Stack>
+          <ConsumptionTypeModal
+            open={isConsumptionModalOpen}
+            onClose={handleConsumptionModalClose}
+            onFoodSelect={handleFoodConsumption}
+            onRecipeSelect={handleRecipeConsumption}
+          />
           <Card sx={{ mt: 2.5, bgcolor: "background.default" }}>
             <CardContent sx={{bgcolor: "background.default", p: 0}}>
               {todayMeals.length === 0 ? (

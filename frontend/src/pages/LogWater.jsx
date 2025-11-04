@@ -5,6 +5,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import DeleteIcon from "@mui/icons-material/Delete"; // <-- NUEVO: Icono de borrar
 import { useNavigate } from "react-router";
 import { backendClient } from "../api/backendClient";
+import dayjs from 'dayjs';
 
 const BASE = import.meta.env.VITE_API_BASE_URL; // (Nota: Ya no es necesario si usas backendClient para todo)
 const QUICK_AMOUNTS = [250, 500, 750];
@@ -352,7 +353,7 @@ const LogWater = () => {
                     {log.mililiters} mL
                   </Typography>
                   <Typography variant="caption" color="#ccc">
-                    {new Date(log.consumedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    {dayjs(log.consumedAt).format('HH:mm')}
                   </Typography>
                 </Box>
                 <IconButton

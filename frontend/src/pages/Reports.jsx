@@ -22,18 +22,27 @@ import Stack from '@mui/material/Stack';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import AddIcon from '@mui/icons-material/Add';
 import Tooltip from '@mui/material/Tooltip';
+import Button from '@mui/material/Button';
 import { useNavigate } from "react-router";
+import ConsumptionTypeModal from '../components/ConsumptionTypeModal';
+
+// 🟢 Importar la ventana modal de notificaciones
+import NotificationsPage from "./NotificationsPage";
 
 export default function ReportsPage() {
   const navigate = useNavigate();
   const [period] = useState("day");
   const [range, setRange] = useState("30d");
+  const [isConsumptionModalOpen, setIsConsumptionModalOpen] = useState(false);
   const [from, setFrom] = useState(dayjs().subtract(30, "day").startOf("day").toISOString());
   const [to, setTo] = useState(dayjs().endOf("day").add(1, "millisecond").toISOString());
 
   const [chartData, setChartData] = useState([]);
   const [dailyTotals, setDailyTotals] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // 🟢 Estado para abrir/cerrar el modal de notificaciones
+  const [openNotifications, setOpenNotifications] = useState(false);
 
   // rangos predeterminados
   const computeRangeDates = useCallback((value) => {
@@ -123,8 +132,22 @@ export default function ReportsPage() {
     navigate(`/day-details/${date}`);
   };
 
-  const handleAddFoodClick = () => {
+  const handleConsumptionModalOpen = () => {
+    setIsConsumptionModalOpen(true);
+  };
+
+  const handleConsumptionModalClose = () => {
+    setIsConsumptionModalOpen(false);
+  };
+
+  const handleFoodConsumption = () => {
+    setIsConsumptionModalOpen(false);
     navigate('/food-consumption/new');
+  };
+
+  const handleRecipeConsumption = () => {
+    setIsConsumptionModalOpen(false);
+    navigate('/recipe-consumption/new');
   };
 
   return (
@@ -145,11 +168,14 @@ export default function ReportsPage() {
           <Stack direction="row" alignItems="center" justifyContent="space-between">
             <UserAvatar />
             <Stack direction="row" spacing={1} alignItems="center">
-              <IconButton size="small">
+              
+              {/* 🟢 Abrir el modal de notificaciones */}
+              <IconButton size="small" onClick={() => setOpenNotifications(true)}>
                 <Badge variant="dot" color="primary">
-                  <NotificationsIcon fontSize="small" />
+                  <NotificationsIcon fontSize="small"/>
                 </Badge>
               </IconButton>
+
             </Stack>
           </Stack>
         </AppBar>
@@ -192,15 +218,38 @@ export default function ReportsPage() {
 
           {/* Lista por día */}
           <Box component="section" sx={{ mt: 3 }}>
+            <Button
+              variant="contained"
+              fullWidth
+              onClick={() => navigate('/food-units')}
+              sx={{
+                mb: 2,
+                maxWidth: 400,
+                mx: 'auto',
+                display: 'block',
+                bgcolor: '#67E67C',
+                '&:hover': {
+                  bgcolor: '#429d51',
+                }
+              }}
+            >
+              Food Units Managment
+            </Button>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
               <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
                 Calories by Day
               </Typography>
-              <Tooltip title="Add Consumed Food">
-                <IconButton size="small" color="primary" onClick={handleAddFoodClick}>
+              <Tooltip title="Add Consumption">
+                <IconButton size="small" color="primary" onClick={handleConsumptionModalOpen}>
                   <AddIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
+              <ConsumptionTypeModal
+                open={isConsumptionModalOpen}
+                onClose={handleConsumptionModalClose}
+                onFoodSelect={handleFoodConsumption}
+                onRecipeSelect={handleRecipeConsumption}
+              />
             </Box>
 
             {loading ? (
@@ -269,6 +318,12 @@ export default function ReportsPage() {
           </Box>
         </Box>
       </Box>
+
+      {/* 🟣 Modal de notificaciones con fondo oscuro y blur */}
+      <NotificationsPage
+        open={openNotifications}
+        onClose={() => setOpenNotifications(false)}
+      />
     </Box>
   );
 }

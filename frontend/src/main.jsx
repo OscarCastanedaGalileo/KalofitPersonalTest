@@ -26,19 +26,30 @@ import FoodLog from "./pages/FoodLog.jsx";
 import LogWater from "./pages/LogWater.jsx";
 import Reports from "./pages/Reports.jsx";
 import FoodUnits from "./pages/FoodUnits.jsx";
+import Categories from "./pages/Categories.jsx";
 import FoodConsumption from "./pages/FoodConsumption.jsx";
 import DayDetails from "./pages/DayDetails.jsx";
 import Profile from "./pages/Profile.jsx";
+import Users from "./pages/Users.jsx";
+import NotificationsPage from "./pages/NotificationsPage.jsx";
+import NotificationsConfig from "./pages/NotificationsConfig.jsx";
+import ReminderForm from "./pages/ReminderForm.jsx";
+import ExportHistory from "./pages/ExportHistory.jsx";
 import {
   Layout,
 } from './components/Layout.jsx'
 import { RootProvider } from './Root.jsx';
+import RecipeCreator from "./pages/RecipeCreator.jsx";
+import RecipeConsumption from "./pages/RecipeConsumption.jsx";
+import EditRecipe from "./pages/EditRecipe.jsx";
+import RecipeList from "./pages/RecipeList.jsx";
 
 import './index.css';
 const rootLoader = () => null;
 // import { verify } from "crypto";
 // import { verifyEmail } from "./api/auth.js";
 import { authMiddleware } from "./guards/authMiddleware.jsx";
+import { adminMiddleware } from "./guards/adminMiddleware.jsx";
 import { guestMiddleware } from "./guards/guestMiddleware.jsx";
 
 
@@ -69,7 +80,26 @@ const router = createBrowserRouter([
   { path: "/food-consumption/new", element: <FoodConsumption /> },
   { path: "/food-consumption/:id", element: <FoodConsumption /> },
   { path: "/day-details/:date", element: <DayDetails /> },
+  { path: "/recipes", element: <RecipeList /> },
+  { path: "/recipes/new", element: <RecipeCreator /> },
+  { path: "/recipes/edit/:id", element: <EditRecipe /> },
+  { path: "/recipe-consumption/new", element: <RecipeConsumption /> },
   { path: "/profile", element: <Profile /> },
+  { path: "/notifications", element: <NotificationsPage /> },
+  { path: "/notifications/new",element: <ReminderForm /> },
+  { path: "/notifications/:id", element: <ReminderForm /> },
+  { path: "/notifications/config", element: <NotificationsConfig /> },
+  { path: "/export-history", element: <ExportHistory /> },
+    ],
+  },
+  {
+    path: "/",
+    element: <Layout />,
+    middleware: [loggingMiddleware, authMiddleware, adminMiddleware],
+    loader: rootLoader,
+    children: [
+      { path: "/users", element: <Users /> },
+      { path: "/categories", element: <Categories /> }
     ],
   },
   {
@@ -81,6 +111,7 @@ const router = createBrowserRouter([
         path: "/welcome",
         element: <Welcome />,
       },
+
       {
         path: "/register",
         element: <Register />,

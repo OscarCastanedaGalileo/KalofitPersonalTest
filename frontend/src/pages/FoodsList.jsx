@@ -111,7 +111,28 @@ const FoodsList = () => {
             py: 0.5,
           })}
         >
-          ADD NEW
+          ADD NEW FOOD
+        </Button>
+        <Button
+          variant="contained"
+          onClick={() => navigate(`/recipes`)}
+          size="small"
+          sx={(t) => ({
+            backgroundColor: '#2c6e49', // Un verde más oscuro y elegante
+            color: '#fff',
+            fontWeight: 'bold',
+            borderRadius: 2,
+            border: '1px solid #52b788',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+            '&:hover': { 
+              backgroundColor: '#52b788',
+              boxShadow: '0 4px 8px rgba(0,0,0,0.3)'
+            },
+            py: 0.5,
+            transition: 'all 0.3s ease'
+          })}
+        >
+          MY RECIPES
         </Button>
       </Box>
 

@@ -2,6 +2,7 @@ const express = require("express");
 const { Op } = require("sequelize");
 const { FoodLog, Food } = require("../models");
 const { requireAuth } = require("../middlewares/requireAuth");
+const { DateTime } = require("luxon");
 const router = express.Router();
 
 // Apply requireAuth to all routes
@@ -19,13 +20,68 @@ function validateNumber(value, fieldName, min = 0) {
   return null;
 }
 
+function parseFlexibleDate(value) {
+  if (!value) return DateTime.now();
+
+  let date;
+
+  // Si es un objeto Date de JavaScript
+  if (value instanceof Date) {
+    date = DateTime.fromJSDate(value);
+  }
+  // Si es un string, intentar diferentes formatos
+  else if (typeof value === 'string') {
+    // Intentar formato ISO primero
+    date = DateTime.fromISO(value);
+
+    // Si no funciona, intentar formato YYYY-MM-DD HH:mm:ss (con espacio)
+    if (!date.isValid) {
+      date = DateTime.fromFormat(value, 'yyyy-MM-dd HH:mm:ss');
+    }
+
+    // Si no funciona, intentar formato YYYY-MM-DD
+    if (!date.isValid) {
+      date = DateTime.fromFormat(value, 'yyyy-MM-dd');
+    }
+
+    // Si aún no funciona, intentar formato DD/MM/YYYY
+    if (!date.isValid) {
+      date = DateTime.fromFormat(value, 'dd/MM/yyyy');
+    }
+
+    // Si aún no funciona, intentar formato MM/DD/YYYY
+    if (!date.isValid) {
+      date = DateTime.fromFormat(value, 'MM/dd/yyyy');
+    }
+  }
+
+  // Si no se pudo parsear, devolver fecha actual
+  return date && date.isValid ? date : DateTime.now();
+}
+
 function validateDate(value, fieldName) {
   if (!value) return null;
-  const date = new Date(value);
-  if (isNaN(date.getTime())) {
+  const date = parseFlexibleDate(value);
+  if (!date.isValid) {
     return `${fieldName} must be a valid date`;
   }
   return null;
+}
+
+// Helper function to format food log response
+function formatFoodLogResponse(foodLog) {
+  if (!foodLog) return null;
+
+  const formatted = foodLog.toJSON ? foodLog.toJSON() : foodLog;
+  if (formatted.consumedAt) {
+    formatted.consumedAt = DateTime.fromJSDate(new Date(formatted.consumedAt)).setZone('America/Guatemala').toISO();
+  }
+  return formatted;
+}
+
+// Helper function to format food log array response
+function formatFoodLogArrayResponse(foodLogs) {
+  return foodLogs.map(formatFoodLogResponse);
 }
 
 router.post("/", async (req, res, next) => {
@@ -92,10 +148,10 @@ router.post("/", async (req, res, next) => {
       recipeId: recipeId || null,
       grams,
       totalCalories: calories,
-      consumedAt: consumedAt ? new Date(consumedAt) : new Date(),
+      consumedAt: consumedAt ? parseFlexibleDate(consumedAt).setZone('America/Guatemala').toJSDate() : DateTime.now().setZone('America/Guatemala').toJSDate(),
     });
 
-    res.status(201).json(entry);
+    res.status(201).json(formatFoodLogResponse(entry));
   } catch (err) {
     // logger.error(err);
     const pg = err?.parent || {};
@@ -126,7 +182,7 @@ router.get("/", async (req, res, next) => {
 
     const where = { userId };
     if (from && to) {
-      where.consumedAt = { [Op.between]: [new Date(from), new Date(to)] };
+      where.consumedAt = { [Op.between]: [parseFlexibleDate(from).toJSDate(), parseFlexibleDate(to).toJSDate()] };
     }
 
     const entries = await FoodLog.findAll({
@@ -137,7 +193,7 @@ router.get("/", async (req, res, next) => {
       ],
     });
 
-    res.json(entries);
+    res.json(formatFoodLogArrayResponse(entries));
   } catch (e) {
     next(e);
   }
@@ -162,7 +218,7 @@ router.get("/:id", async (req, res, next) => {
       return res.status(404).json({ message: "Entry not found" });
     }
 
-    res.json(entry);
+    res.json(formatFoodLogResponse(entry));
   } catch (e) {
     next(e);
   }
@@ -239,7 +295,7 @@ router.put("/:id", async (req, res, next) => {
       recipeId: recipeId || null,
       grams,
       totalCalories: calories,
-      consumedAt: consumedAt ? new Date(consumedAt) : undefined,
+      consumedAt: consumedAt ? parseFlexibleDate(consumedAt).setZone('America/Guatemala').toJSDate() : undefined,
       notes,
     }, {
       where: { id: idNum, userId },
@@ -250,7 +306,7 @@ router.put("/:id", async (req, res, next) => {
     }
 
     const entry = await FoodLog.findByPk(idNum);
-    res.json(entry);
+    res.json(formatFoodLogResponse(entry));
   } catch (err) {
     const pg = err?.parent || {};
     return res.status(400).json({

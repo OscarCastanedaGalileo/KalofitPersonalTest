@@ -97,3 +97,29 @@ export async function updateProfile(data) {
   console.log("[updateProfile] PUT /me/profile with data:", data);
   return await backendClient.put('/api/me/profile', data);
 }
+
+export async function getReminders() {
+  console.log("[getReminders] GET /api/reminders");
+  return await backendClient.get('/api/reminders');
+}
+
+export async function getReminderById(id) {
+  console.log("[getReminderById] GET /api/reminders/" + id);
+  return await backendClient.get(`/api/reminders/${id}`);
+}
+
+export async function createReminder(data) {
+  // data = { name: "Almuerzo", time: "12:30" }
+  console.log("[createReminder] POST /api/reminders with data:", data);
+  return await backendClient.post('/api/reminders', data);
+}
+
+export async function updateReminder(id, data) {
+  console.log("[updateReminder] PUT /api/reminders/" + id + " with data:", data);
+  return await backendClient.put(`/api/reminders/${id}`, data);
+}
+
+export async function deleteReminder(id) {
+  console.log("[deleteReminder] DELETE /api/reminders/" + id);
+  return await backendClient.delete(`/api/reminders/${id}`);
+}

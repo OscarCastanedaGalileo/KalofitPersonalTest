@@ -14,6 +14,7 @@ import {
   Divider,
   Paper,
 } from '@mui/material';
+import ConsumptionTypeModal from '../components/ConsumptionTypeModal';
 import {
   Delete as DeleteIcon,
   Add as AddIcon,
@@ -32,6 +33,7 @@ export default function DayDetails() {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isConsumptionModalOpen, setIsConsumptionModalOpen] = useState(false);
 
   const selectedDate = useMemo(() => date ? dayjs(date) : dayjs(), [date]);
 
@@ -73,6 +75,24 @@ export default function DayDetails() {
 
   const handleBack = () => {
     navigate('/reports');
+  };
+
+  const handleConsumptionModalOpen = () => {
+    setIsConsumptionModalOpen(true);
+  };
+
+  const handleConsumptionModalClose = () => {
+    setIsConsumptionModalOpen(false);
+  };
+
+  const handleFoodConsumption = () => {
+    setIsConsumptionModalOpen(false);
+    navigate('/food-consumption/new');
+  };
+
+  const handleRecipeConsumption = () => {
+    setIsConsumptionModalOpen(false);
+    navigate('/recipe-consumption/new');
   };
 
   const totalCalories = entries.reduce((sum, entry) => sum + (Number(entry?.totalCalories || 0)), 0);
@@ -137,10 +157,16 @@ export default function DayDetails() {
                   variant="contained"
                   size="large"
                   startIcon={<AddIcon />}
-                  onClick={() => navigate('/food-consumption/new')}
+                  onClick={handleConsumptionModalOpen}
                 >
                   Add consumption
                 </Button>
+                <ConsumptionTypeModal
+                  open={isConsumptionModalOpen}
+                  onClose={handleConsumptionModalClose}
+                  onFoodSelect={handleFoodConsumption}
+                  onRecipeSelect={handleRecipeConsumption}
+                />
               </Box>
             ) : (
               <List>
@@ -258,7 +284,7 @@ export default function DayDetails() {
         {entries.length > 0 && (
           <Fab
             color="primary"
-            onClick={() => navigate('/food-consumption/new')}
+            onClick={handleConsumptionModalOpen}
             sx={{
               position: 'fixed',
               bottom: 24,

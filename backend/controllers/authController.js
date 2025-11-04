@@ -17,6 +17,7 @@ const {
   sendResetCode,
 } = require("../utils/passwordReset");
 const logger = require('../config/logger');
+const { DateTime } = require('luxon');
 const { APP_ORIGIN = "http://localhost:3000" } = process.env;
 
 function buildVerifyUrl(token) {
@@ -129,7 +130,7 @@ const authController = {
       if (!emailVerification) {
         return res.status(400).json({ message: 'Verification link is invalid or expired.' });
       }
-      if (new Date(emailVerification.expiresAt).getTime() < Date.now()) {
+      if (DateTime.fromJSDate(emailVerification.expiresAt) < DateTime.now()) {
         return res.status(400).json({ message: 'Verification link has expired.' });
       }
       const user = await User.findOne({ where: { email } });
@@ -168,8 +169,8 @@ const authController = {
         order: [['createdAt', 'DESC']],
       });
       if (last) {
-        const lastCreated = new Date(last.createdAt).getTime();
-        if (now - lastCreated < COOLDOWN_MS) {
+        const lastCreated = DateTime.fromJSDate(last.createdAt);
+        if (DateTime.now() < lastCreated.plus({ minutes: 2 })) {
           return res.json(NEUTRAL);
         }
       }
@@ -311,7 +312,7 @@ const authController = {
       await PasswordReset.create({
         userId: user.id,
         codeHash: hashCode(code),
-        expiresAt: new Date(Date.now() + CODE_TTL_MS),
+        expiresAt: DateTime.now().plus({ milliseconds: CODE_TTL_MS }).toJSDate(),
         attempts: 0,
         consumed: false,
         ip: req.ip,
@@ -351,7 +352,7 @@ const authController = {
       if (!reset) {
         return res.status(400).json({ message: "Invalid or expired code" });
       }
-      if (new Date(reset.expiresAt).getTime() < Date.now()) {
+      if (DateTime.fromJSDate(reset.expiresAt) < DateTime.now()) {
         return res.status(400).json({ message: "Code expired" });
       }
       if (reset.attempts >= MAX_ATTEMPTS) {

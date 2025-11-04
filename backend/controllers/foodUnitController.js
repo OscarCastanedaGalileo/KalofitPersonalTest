@@ -63,7 +63,28 @@ const foodUnitController = {
   // Get all food units
   async getFoodUnits(req, res) {
     try {
+      const { foodId, unitId } = req.query;
+      const where = {};
+
+      // Add filters if provided
+      if (foodId) {
+        const foodIdNum = parseInt(foodId, 10);
+        if (isNaN(foodIdNum) || foodIdNum <= 0) {
+          return res.status(400).json({ message: "foodId must be a positive integer" });
+        }
+        where.foodId = foodIdNum;
+      }
+
+      if (unitId) {
+        const unitIdNum = parseInt(unitId, 10);
+        if (isNaN(unitIdNum) || unitIdNum <= 0) {
+          return res.status(400).json({ message: "unitId must be a positive integer" });
+        }
+        where.unitId = unitIdNum;
+      }
+
       const foodUnits = await FoodUnit.findAll({
+        where,
         include: [
           { model: Food, as: "food", attributes: ["id", "name"], include: [{ model: FoodCategory, as: "category", attributes: ["id", "name"] }] },
           { model: Unit, as: "unit", attributes: ["id", "name", "type"] },

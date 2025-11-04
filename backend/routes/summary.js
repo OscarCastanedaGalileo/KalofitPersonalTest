@@ -1,9 +1,48 @@
 const express = require("express");
-const dayjs = require("dayjs");
+const { DateTime } = require("luxon");
 const { aggregateCalories } = require("../services/summaryService");
 
 const router = express.Router();
 const resolveUserId = (req) => req.user?.id || 1;
+
+function parseFlexibleDate(value) {
+  if (!value) return DateTime.now();
+
+  let date;
+
+  // Si es un objeto Date de JavaScript
+  if (value instanceof Date) {
+    date = DateTime.fromJSDate(value);
+  }
+  // Si es un string, intentar diferentes formatos
+  else if (typeof value === 'string') {
+    // Intentar formato ISO primero
+    date = DateTime.fromISO(value);
+
+    // Si no funciona, intentar formato YYYY-MM-DD HH:mm:ss (con espacio)
+    if (!date.isValid) {
+      date = DateTime.fromFormat(value, 'yyyy-MM-dd HH:mm:ss');
+    }
+
+    // Si no funciona, intentar formato YYYY-MM-DD
+    if (!date.isValid) {
+      date = DateTime.fromFormat(value, 'yyyy-MM-dd');
+    }
+
+    // Si aún no funciona, intentar formato DD/MM/YYYY
+    if (!date.isValid) {
+      date = DateTime.fromFormat(value, 'dd/MM/yyyy');
+    }
+
+    // Si aún no funciona, intentar formato MM/DD/YYYY
+    if (!date.isValid) {
+      date = DateTime.fromFormat(value, 'MM/dd/yyyy');
+    }
+  }
+
+  // Si no se pudo parsear, devolver fecha actual
+  return date && date.isValid ? date : DateTime.now();
+}
 
 router.get("/aggregate", async (req, res, next) => {
   try {
@@ -13,32 +52,32 @@ router.get("/aggregate", async (req, res, next) => {
 
     let { from, to } = req.query;
     if (!from || !to) {
-      const now = dayjs();
+      const now = DateTime.now();
       if (period === "week") {
-        from = now.startOf("week").toDate();
-        to = now.endOf("week").add(1, "millisecond").toDate();
+        from = now.startOf("week").toJSDate();
+        to = now.endOf("week").plus({ milliseconds: 1 }).toJSDate();
       } else if (period === "month") {
-        from = now.startOf("month").toDate();
-        to = now.endOf("month").add(1, "millisecond").toDate();
+        from = now.startOf("month").toJSDate();
+        to = now.endOf("month").plus({ milliseconds: 1 }).toJSDate();
       } else {
-        from = now.startOf("day").toDate();
-        to = now.endOf("day").add(1, "millisecond").toDate();
+        from = now.startOf("day").toJSDate();
+        to = now.endOf("day").plus({ milliseconds: 1 }).toJSDate();
       }
     } else {
-      from = new Date(from);
-      to = new Date(to);
+      from = parseFlexibleDate(from).toJSDate();
+      to = parseFlexibleDate(to).toJSDate();
     }
 
     const { rows, total } = await aggregateCalories({ userId, period, from, to });
 
-    const days = Math.max(1, dayjs(to).diff(dayjs(from), "day") || 1);
+    const days = Math.max(1, DateTime.fromJSDate(to).diff(DateTime.fromJSDate(from), "days").days || 1);
 
     res.json({
       period,
       from,
       to,
       buckets: rows.map((r) => ({
-        bucket: new Date(r.bucket).toISOString(),
+        bucket: DateTime.fromJSDate(new Date(r.bucket)).toISO(),
         calories: Number(r.calories),
       })),
       totals: { calories: total, avgPerDay: Math.round(total / days) },

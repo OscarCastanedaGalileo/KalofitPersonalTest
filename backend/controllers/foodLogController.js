@@ -2,7 +2,7 @@ const db = require("../config/database");
 const { FoodLog, Food, Unit, Tag, FoodLogTag, FoodCategory, User, sequelize } = require("../models");
 const { Op, Sequelize, where } = require("sequelize");
 const logger = require("../config/logger");
-const dayjs = require("dayjs");
+const { DateTime } = require("luxon");
 
 // Validation helpers
 function validateNumber(value, fieldName, min = 0) {
@@ -16,11 +16,100 @@ function validateNumber(value, fieldName, min = 0) {
 
 function validateDate(value, fieldName) {
   if (!value) return null;
-  const date = dayjs(value);
-  if (!date.isValid()) {
+
+  let date;
+  // Si es un objeto Date de JavaScript
+  if (value instanceof Date) {
+    date = DateTime.fromJSDate(value);
+  }
+  // Si es un string, intentar diferentes formatos
+  else if (typeof value === 'string') {
+    // Intentar formato ISO primero
+    date = DateTime.fromISO(value);
+
+    // Si no funciona, intentar formato YYYY-MM-DD HH:mm:ss (con espacio)
+    if (!date.isValid) {
+      date = DateTime.fromFormat(value, 'yyyy-MM-dd HH:mm:ss');
+    }
+    // Si no funciona, intentar formato YYYY-MM-DD
+    if (!date.isValid) {
+      date = DateTime.fromFormat(value, 'yyyy-MM-dd');
+  // console.log({value, fieldName, date});
+    }
+
+    // Si aún no funciona, intentar formato DD/MM/YYYY
+    if (!date.isValid) {
+      date = DateTime.fromFormat(value, 'dd/MM/yyyy');
+    }
+
+    // Si aún no funciona, intentar formato MM/DD/YYYY
+    if (!date.isValid) {
+      date = DateTime.fromFormat(value, 'MM/dd/yyyy');
+    }
+  }
+
+  if (!date || !date.isValid) {
     return `${fieldName} must be a valid date`;
   }
+
   return null;
+}
+
+function parseFlexibleDate(value) {
+  if (!value) return DateTime.now();
+
+  // Si es un objeto Date de JavaScript
+  if (value instanceof Date) {
+    return DateTime.fromJSDate(value);
+  }
+  
+  // Si es un string, intentar primero ISO (el formato más común y rápido)
+  if (typeof value === 'string') {
+    let date = DateTime.fromISO(value);
+    
+    // Si no es ISO, intentar otros formatos comunes
+    if (!date.isValid) {
+      const formats = [
+        'yyyy-MM-dd HH:mm:ss',
+        'yyyy-MM-dd',
+        'dd/MM/yyyy'
+      ];
+      
+      for (const format of formats) {
+        date = DateTime.fromFormat(value, format);
+        if (date.isValid) break;
+      }
+    }
+    
+    if (date.isValid) return date;
+  }
+
+  // Si no se pudo parsear, devolver fecha actual
+  return DateTime.now();
+}
+
+// Helper function to assign tags to a food log
+async function assignTagsToFoodLog(foodLogId, tagNames, userId) {
+  if (!tagNames || !Array.isArray(tagNames) || tagNames.length === 0) return;
+
+  const tagRecords = [];
+  for (const name of tagNames) {
+    if (typeof name !== 'string' || !name.trim()) continue;
+    const trimmedName = name.trim();
+    let tag = await Tag.findOne({ where: { name: trimmedName } });
+    if (!tag) {
+      tag = await Tag.create({ name: trimmedName, userId: userId });
+    }
+    tagRecords.push(tag);
+  }
+
+  // Create FoodLogTag associations
+  const associations = tagRecords.map(tag => ({
+    foodLogId,
+    tagId: tag.id,
+    createdBy: userId,
+  }));
+  await FoodLogTag.bulkCreate(associations);
 }
 
 module.exports = {
@@ -29,7 +118,7 @@ module.exports = {
     try {
       const userId = req.user.id;
       let { foodId, grams, calories, quantity, consumedAt, unitId, recipeId, tags } = req.body;
-
+      console.log({ foodId, grams, calories, quantity, consumedAt, unitId, recipeId, tags });
       // Validations
       if (foodId && recipeId) {
         return res.status(400).json({ message: "Cannot provide both foodId and recipeId" });
@@ -64,24 +153,40 @@ module.exports = {
 
       if (consumedAt) {
         error = validateDate(consumedAt, 'consumedAt');
+        console.log({ error });
         if (error) return res.status(400).json({ message: error });
       }
 
       if (!calories && foodId) {
-        const food = await Food.findByPk(foodId, { attributes: ["id", "name", "caloriesPerGram"] });
-        if (!food) {
-          return res.status(400).json({ message: "Food not found" });
+        try {
+          const food = await Food.findByPk(foodId, { 
+            attributes: ["id", "name", "caloriesPerGram"],
+            raw: true // Get plain object for better performance
+          });
+          
+          if (!food) {
+            return res.status(400).json({ message: "Food not found" });
+          }
+          if (food.caloriesPerGram == null) {
+            return res.status(400).json({ message: "Food has no caloriesPerGram defined" });
+          }
+          
+          calories = Number(grams) * Number(food.caloriesPerGram);
+          
+          if (isNaN(calories)) {
+            logger.error(`Error calculating calories: grams=${grams}, caloriesPerGram=${food.caloriesPerGram}, foodId=${foodId}`);
+            return res.status(400).json({ message: "Error calculating calories - invalid numbers" });
+          }
+        } catch (error) {
+          logger.error(`Error fetching food data for calorie calculation: ${error.message}`);
+          return res.status(500).json({ message: "Error calculating calories" });
         }
-        if (food.caloriesPerGram == null) {
-          return res.status(400).json({ message: "Food has no caloriesPerGram defined" });
-        }
-        calories = Number(grams) * Number(food.caloriesPerGram);
       }
 
       if (!calories) {
         return res.status(400).json({ message: "Provide calories or a valid foodId to calculate them" });
       }
-
+      console.log({consumedAt});
       const payload = {
         userId,
         foodId: foodId || null,
@@ -90,12 +195,13 @@ module.exports = {
         grams,
         quantity,
         totalCalories: calories,
-        consumedAt: consumedAt ? dayjs(consumedAt).toDate() : dayjs().toDate(),
+        consumedAt: consumedAt ? parseFlexibleDate(consumedAt).setZone('America/Guatemala').toJSDate() : DateTime.now().setZone('America/Guatemala').toJSDate(),
         notes: req.body.notes,
       };
+      console.log({payload});
       const newFoodLog = await FoodLog.create(payload);
       await assignTagsToFoodLog(newFoodLog.id, tags, userId);
-      res.status(201).json(newFoodLog);
+      res.status(201).json(formatFoodLogResponse(newFoodLog));
     } catch (error) {
       logger.error(`Error creating food log: ${error.message}`);
       const pg = error?.parent || {};
@@ -127,7 +233,7 @@ module.exports = {
 
       const where = { userId, deletedAt: null };
       if (from && to) {
-        where.consumedAt = { [Op.between]: [dayjs(from).toDate(), dayjs(to).toDate()] };
+        where.consumedAt = { [Op.between]: [parseFlexibleDate(from).toJSDate(), parseFlexibleDate(to).toJSDate()] };
       }
 
       const foodLogs = await FoodLog.findAll({
@@ -139,7 +245,7 @@ module.exports = {
         ],
         order: [['consumedAt', 'ASC'], ['id', 'ASC']],
       });
-      res.json(foodLogs);
+      res.json(formatFoodLogArrayResponse(foodLogs));
     } catch (error) {
       logger.error(`Error fetching food logs: ${error.message}`);
       res.status(500).json({ error: "Internal server error" });
@@ -171,7 +277,7 @@ module.exports = {
         return res.status(404).json({ message: "Entry not found" });
       }
 
-      res.json(entry);
+      res.json(formatFoodLogResponse(entry));
     } catch (error) {
       logger.error(`Error fetching food log: ${error.message}`);
       res.status(500).json({ error: "Internal server error" });
@@ -250,7 +356,7 @@ module.exports = {
         recipeId: recipeId || null,
         grams,
         totalCalories: calories,
-        consumedAt: consumedAt ? dayjs(consumedAt).toDate() : undefined,
+        consumedAt: consumedAt ? parseFlexibleDate(consumedAt).setZone('America/Guatemala').toJSDate() : undefined,
         notes,
       }, {
         where: { id: idNum, userId, deletedAt: null },
@@ -265,7 +371,7 @@ module.exports = {
       await assignTagsToFoodLog(idNum, tags, userId);
 
       const entry = await FoodLog.findByPk(idNum);
-      res.json(entry);
+      res.json(formatFoodLogResponse(entry));
     } catch (error) {
       logger.error(`Error updating food log: ${error.message}`);
       const pg = error?.parent || {};
@@ -285,8 +391,8 @@ module.exports = {
       const date = req.query.date; // expected format: YYYY-MM-DD
       if (!date) return res.status(400).json({ error: "date query param required" });
 
-      const startOfDay = dayjs(date).startOf('day').toDate();
-      const endOfDay = dayjs(date).endOf('day').toDate();
+      const startOfDay = parseFlexibleDate(date).startOf('day').toJSDate();
+      const endOfDay = parseFlexibleDate(date).endOf('day').toJSDate();
 
       const entries = await FoodLog.findAll({
         where: { userId, consumedAt: { [Op.between]: [startOfDay, endOfDay] } },
@@ -295,7 +401,7 @@ module.exports = {
 
       const total = entries.reduce((sum, e) => sum + (e.totalCalories || 0), 0);
 
-      res.json({ date, totalCalories: total, entries });
+      res.json({ date, totalCalories: total, entries: formatFoodLogArrayResponse(entries) });
     } catch (error) {
       logger.error(`Error fetching food logs by date: ${error.message}`);
       res.status(500).json({ error: "Internal server error" });
@@ -309,8 +415,8 @@ module.exports = {
       const date = req.query.date; // expected format: YYYY-MM-DD
       if (!date) return res.status(400).json({ error: "date query param required" });
 
-      const startOfDay = dayjs(date).startOf('day').toDate();
-      const endOfDay = dayjs(date).endOf('day').toDate();
+      const startOfDay = parseFlexibleDate(date).startOf('day').toJSDate();
+      const endOfDay = parseFlexibleDate(date).endOf('day').toJSDate();
 
       const entries = await FoodLog.findAll({
         where: {
@@ -350,27 +456,7 @@ module.exports = {
       res.json({
         date,
         totalCalories: total,
-        entries: entries.map(entry => ({
-          id: entry.id,
-          foodId: entry.foodId,
-          unitId: entry.unitId,
-          quantity: entry.quantity,
-          grams: entry.grams,
-          totalCalories: entry.totalCalories,
-          consumedAt: entry.consumedAt.toISOString(),
-          notes: entry.notes,
-          food: entry.food ? {
-            id: entry.food.id,
-            name: entry.food.name,
-            caloriesPerGram: entry.food.caloriesPerGram,
-            category: entry.food.category
-          } : null,
-          unit: entry.unit ? {
-            id: entry.unit.id,
-            name: entry.unit.name
-          } : null,
-          tags: entry.tags || []
-        }))
+        entries: formatFoodLogArrayResponse(entries)
       });
     } catch (error) {
       logger.error(`Error fetching detailed food logs by date: ${error.message}`);
@@ -410,8 +496,7 @@ module.exports = {
       const userId = req.user.id;
       const DEFAULT_GOAL = 2000; // Meta calórica por defecto
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const today = DateTime.now().startOf('day').toJSDate();
 
       // Obtener la meta calórica del perfil del usuario
       const user = await User.findByPk(userId, {
@@ -473,26 +558,18 @@ module.exports = {
 
 };
 
-// Helper function to assign tags to a food log
-async function assignTagsToFoodLog(foodLogId, tagNames, userId) {
-  if (!tagNames || !Array.isArray(tagNames) || tagNames.length === 0) return;
+// Helper function to format food log response
+function formatFoodLogResponse(foodLog) {
+  if (!foodLog) return null;
 
-  const tagRecords = [];
-  for (const name of tagNames) {
-    if (typeof name !== 'string' || !name.trim()) continue;
-    const trimmedName = name.trim();
-    let tag = await Tag.findOne({ where: { name: trimmedName } });
-    if (!tag) {
-      tag = await Tag.create({ name: trimmedName, userId: userId });
-    }
-    tagRecords.push(tag);
+  const formatted = foodLog.toJSON ? foodLog.toJSON() : foodLog;
+  if (formatted.consumedAt) {
+    formatted.consumedAt = DateTime.fromJSDate(new Date(formatted.consumedAt)).setZone('America/Guatemala').toISO();
   }
+  return formatted;
+}
 
-  // Create FoodLogTag associations
-  const associations = tagRecords.map(tag => ({
-    foodLogId,
-    tagId: tag.id,
-    createdBy: userId,
-  }));
-  await FoodLogTag.bulkCreate(associations);
+// Helper function to format food log array response
+function formatFoodLogArrayResponse(foodLogs) {
+  return foodLogs.map(formatFoodLogResponse);
 }

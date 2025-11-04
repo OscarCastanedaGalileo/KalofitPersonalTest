@@ -1,16 +1,20 @@
 var express = require("express");
 var router = express.Router();
-const { Food, FoodCategory } = require("../models");
+const { Op } = require("sequelize");
+const { Food, FoodCategory, FoodUnit, sequelize } = require("../models");
+const { requireAuth } = require("../middlewares/requireAuth");
+
+router.use(requireAuth);
 
 // POST NEW FOOD
 router.post("/", async (req, res) => {
   const { name, caloriesPerGram, foodCategoryId } = req.body;
-  const userId = req.user.id; //
+  const userId = req.user.id;
   try {
     const category = await FoodCategory.findByPk(foodCategoryId);
 
     if (!category) return res.status(400).json({ message: "Categoría no encontrada" });
-    // if (!user) return res.status(400).json({ message: "Usuario (createdBy) no encontrado" });
+
     const newFood = await Food.create({
       name,
       caloriesPerGram,
@@ -26,29 +30,37 @@ router.post("/", async (req, res) => {
   }
 });
 
-// GET all foods
+//  GET all foods
 router.get("/", async (req, res) => {
   try {
     const userId = req.user.id;
+    const isAdmin = req.user.role === 'admin';
+    const whereClause = isAdmin ? {} : { isCustom: true, createdBy: userId };
     const allFoods = await Food.findAll({
-      where: {
-        isCustom: true,
-        createdBy: userId,
-      },
+      where: whereClause,
+      attributes: ["id", "name", "caloriesPerGram", "isCustom", "foodCategoryId"],
+      include: [
+        {
+          model: FoodCategory,
+          as: "category",
+          attributes: ["id", "name"]
+        }
+      ]
     });
+
     res.json(allFoods);
   } catch (error) {
-    console.error("Error fetching foods:", error);
-    res.status(500).json({ error: "Error fetching foods" });
+    console.error("Error FATAL fetching eligible foods (500 likely due to include):", error);
+    // Devolvemos 500 para notificar al frontend.
+    res.status(500).json({ error: "Error interno del servidor al cargar alimentos. Verifique la asociación FoodUnit." });
   }
 });
 
+// route /all
 router.get("/all", async (req, res) => {
   try {
     const allFoods = await Food.findAll({
-      include: [
-        { model: FoodCategory, as: "category", attributes: ["id", "name"] },
-      ],
+      include: [{ model: FoodCategory, as: "category", attributes: ["id", "name"] }],
     });
     res.json(allFoods);
   } catch (error) {
@@ -65,6 +77,12 @@ router.get("/:id", async (req, res) => {
     const food = await Food.findByPk(id);
     if (!food) return res.status(404).json({ error: "Food not found" });
 
+    const userId = req.user.id;
+    const isAdmin = req.user.role === 'admin';
+    if (!isAdmin && food.createdBy !== userId) {
+      return res.status(403).json({ error: "Access denied to this food" });
+    }
+
     res.json(food);
   } catch (error) {
     console.error("Error fetching food:", error);
@@ -72,7 +90,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-/* 
+/*
 // DELETE FOOD by ID (only deletes if createdBy matches user)
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;
@@ -96,25 +114,22 @@ router.delete("/:id", async (req, res) => {
   }
 }); */
 
-// SOFT DELETE FOOD by ID (only soft-deletes if createdBy matches user)
+// SOFT DELETE FOOD by ID (only soft-deletes if createdBy matches user or admin)
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;
   const userId = req.user.id;
+  const isAdmin = req.user.role === 'admin';
 
   try {
+    const whereClause = isAdmin ? { id: id } : { id: id, createdBy: userId };
     const deletedRows = await Food.destroy({
-      where: {
-        id: id,
-        createdBy: userId, // only the creator can delete
-      },
+      where: whereClause,
     });
 
     if (deletedRows === 0) {
-      // If deletedRows is 0, not found or user has no permissions
       return res.status(404).json({ error: "Food not found or you can only delete foods you created" });
     }
 
-    // 204 No Content: Standard response for successful deletion.
     res.status(204).send();
   } catch (error) {
     console.error("Error soft-deleting food:", error);
@@ -132,6 +147,12 @@ router.put("/:id", async (req, res) => {
   try {
     const food = await Food.findByPk(id);
     if (!food) return res.status(404).json({ error: "Food not found" });
+
+    const userId = req.user.id;
+    const isAdmin = req.user.role === 'admin';
+    if (!isAdmin && food.createdBy !== userId) {
+      return res.status(403).json({ error: "You can only update foods you created" });
+    }
 
     // Actualiza campos
     food.name = name;

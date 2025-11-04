@@ -1,6 +1,7 @@
   // utils/emailVerificationToken.js
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
+const { DateTime } = require('luxon');
 
 const { EMAIL_TOKEN_SECRET = process.env.JWT_SECRET } = process.env;
 
@@ -16,7 +17,7 @@ function signEmailVerification({ sub, email, ttl = '1h' }) {
   const token = jwt.sign({ sub, email, purpose: 'email_verify' }, EMAIL_TOKEN_SECRET, { expiresIn: ttl, jwtid: jti });
   // calcular expiresAt desde el token
   const { exp } = jwt.decode(token);
-  const expiresAt = new Date(exp * 1000);
+  const expiresAt = DateTime.fromSeconds(exp).toJSDate();
   return { token, jti, expiresAt };
 }
 
