@@ -1,0 +1,57 @@
+services:
+  - type: web
+    name: kalo-backend
+    branch: main
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+  - type: web
+    name: kalo-frontend
+    branch: main
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://kalo-backend.onrender.com
+
+      # Link DB vars (see below)
+databases:
+  - name: kalo-db
+    plan: free
+    databaseName: kalo
+    user: kalo
+
+envVars:
+  - key: DB_HOST
+    fromDatabase:
+      name: kalo-db
+      property: host
+  - key: DB_USERNAME
+    fromDatabase:
+      name: kalo-db
+      property: user
+  - key: DB_PASSWORD
+    fromDatabase:
+      name: kalo-db
+      property: password
+  - key: DB_DATABASE
+    fromDatabase:
+      name: kalo-db
+      property: database
+  - key: DB_DIALECT
+    value: postgres
+  - key: FDC_API_KEY
+    sync: false
+  - key: EMAIL_USER
+    sync: false
+  - key: EMAIL_PASS
+    sync: false
+
