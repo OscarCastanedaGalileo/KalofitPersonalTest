@@ -28,8 +28,7 @@ databases:
     plan: free
     databaseName: kalo
     user: kalo
-
-envVars:
+    envVars:
   - key: DB_HOST
     fromDatabase:
       name: kalo-db
@@ -54,4 +53,4 @@ envVars:
     sync: false
   - key: EMAIL_PASS
     sync: false
-
+    
