@@ -1,10 +1,9 @@
 # render.yaml
 services:
-  # Backend (Node + Express + Sequelize)
+  # Backend: Node + Express + Sequelize
   - type: web
     name: kalo-backend
     env: node
-    plan: free
     branch: main
     rootDir: backend
     buildCommand: npm install
@@ -16,7 +15,7 @@ services:
       - key: PORT
         value: "3000"
 
-      # Database connection (linked to Render Postgres)
+      # Database connection (linked to managed Postgres)
       - key: DB_HOST
         fromDatabase:
           name: kalo-db
@@ -48,23 +47,22 @@ services:
 
       # Email configuration (SMTP)
       - key: EMAIL_SERVICE
-        value: gmail            # or another service
+        value: gmail
       - key: EMAIL_HOST
-        value: smtp.gmail.com   # adjust if using another provider
+        value: smtp.gmail.com
       - key: EMAIL_PORT
         value: "587"
       - key: EMAIL_USER
-        sync: false             # you’ll input in Render dashboard
+        sync: false
       - key: EMAIL_PASS
-        sync: false             # you’ll input in Render dashboard
+        sync: false
       - key: EMAIL_FROM
-        value: "no-reply@kalo-fit.com"
+        value: "oscar.andre.castaneda@gmail.com"
 
-  # Frontend (Vite + React static site)
+  # Frontend: Vite + React static site
   - type: web
     name: kalo-frontend
     env: static
-    plan: free
     branch: main
     rootDir: frontend
     buildCommand: npm install && npm run build
@@ -74,7 +72,7 @@ services:
       - key: VITE_API_BASE_URL
         value: https://kalo-backend.onrender.com
 
-# Managed PostgreSQL instance
+# Managed PostgreSQL database
 databases:
   - name: kalo-db
     plan: free
