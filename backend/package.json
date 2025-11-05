@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "node --watch ./bin/www",
     "start": "node ./bin/www",
+    "migrate": "npx sequelize-cli db:migrate",
     "seed:fdc": "node scripts/fdc-seed.js"
   },
   "dependencies": {
