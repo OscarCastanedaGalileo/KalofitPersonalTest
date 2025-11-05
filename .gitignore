@@ -1,4 +1,4 @@
-.env
+
 pg_pass
 pg-db-data/*
 *.swp
