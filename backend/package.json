@@ -3,11 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "node --watch ./bin/www",
-    "start": "node ./bin/www",
+    "start": "node scripts/start-with-migrate.js",
+    "dev": "nodemon ./bin/www",
     "migrate": "npx sequelize-cli db:migrate --env production",
-    "seed": "npx sequelize-cli db:seed:all --env production",
-    "postinstall": "npm run migrate && npm run seed"
+    "seed": "npx sequelize-cli db:seed:all --env production"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
