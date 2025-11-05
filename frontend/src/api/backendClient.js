@@ -9,7 +9,7 @@ const tokenRefresher = new TokenRefresher(
 
 const baseUrlApi = import.meta.env.VITE_API_BASE_URL || '';
 
-export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+export const API_BASE = import.meta.env.VITE_API_URL || 'https://kalofrontend.onrender.com';
 
 export async function apiGet(path) {
   const res = await fetch(`${API_BASE}${path}`, { credentials: 'include' });
