@@ -12,7 +12,8 @@ const reminderRoutes = require('./routes/reminders');
 // Configuración global de Luxon - Zona horaria America/Guatemala
 require('./config/luxon');
 
-const { APP_ORIGIN = "https://kalofit-personal-test.vercel.app/" } = process.env;
+const APP_ORIGIN = process.env.APP_ORIGIN || 'https://kalofit-personal-test.vercel.app';
+const allowedOrigins = process.env.APP_ORIGIN ? process.env.APP_ORIGIN.split(',') : [process.env.APP_ORIGIN];
 
 const { requireAuth } = require("./middlewares/requireAuth");
 
@@ -45,16 +46,16 @@ app.use(express.json());
 app.use(
   cors({
     origin: function (origin, callback) {
-      // allow requests with no origin
-      // (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-      if (origin === APP_ORIGIN) {
+      if (!origin) return callback(null, true); // Allow requests without origin (e.g., Postman)
+      if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       } else {
-        const msg = `The CORS policy for this site does not allow access from the specified Origin.`;
-        return callback(new Error(msg), false);
+        console.error("Blocked CORS request from:", origin);
+        return callback(
+          new Error(`CORS policy does not allow access from origin ${origin}`),
+          false
+        );
       }
-      
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -64,7 +65,6 @@ app.use(
       "X-Requested-With",
       "Accept",
       "Origin",
-      "Access-Control-Allow-Origin",
     ],
   })
 );
