@@ -17,7 +17,6 @@ const { APP_ORIGIN = "https://kalofit-personal-test.vercel.app/" } = process.env
 const { requireAuth } = require("./middlewares/requireAuth");
 
 const allowedOrigins = [
-  APP_ORIGIN,
   "https://kalofitpersonaltest.onrender.com",
   "http://localhost:5173",
   "http://localhost:3000",
