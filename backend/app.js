@@ -16,12 +16,6 @@ const { APP_ORIGIN = "https://kalofit-personal-test.vercel.app/" } = process.env
 
 const { requireAuth } = require("./middlewares/requireAuth");
 
-const allowedOrigins = [
-  "https://kalofitpersonaltest.onrender.com",
-  "http://localhost:5173",
-  "http://localhost:3000",
-];
-
 var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
 // var foodsRouter = require("./routes/foods");
@@ -54,7 +48,7 @@ app.use(
       // allow requests with no origin
       // (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) !== -1) {
+      if (origin === APP_ORIGIN) {
         return callback(null, true);
       } else {
         const msg = `The CORS policy for this site does not allow access from the specified Origin.`;
@@ -64,7 +58,14 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "Accept",
+      "Origin",
+      "Access-Control-Allow-Origin",
+    ],
   })
 );
 
