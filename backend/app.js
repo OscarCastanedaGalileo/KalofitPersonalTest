@@ -44,7 +44,19 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: '*', credentials: true,
+    origin: function (origin, callback) {
+      // allow requests with no origin
+      // (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      if (origin === APP_ORIGIN) {
+        return callback(null, true);
+      } else {
+        const msg = `The CORS policy for this site does not allow access from the specified Origin.`;
+        return callback(new Error(msg), false);
+      }
+      return callback(null, true);
+    },
+    credentials: true,
   })
 );
 
