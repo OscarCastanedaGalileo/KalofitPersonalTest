@@ -13,7 +13,7 @@ const reminderRoutes = require('./routes/reminders');
 require('./config/luxon');
 
 const APP_ORIGIN = process.env.APP_ORIGIN || 'https://kalofit-personal-test.vercel.app';
-const allowedOrigins = process.env.APP_ORIGIN ? process.env.APP_ORIGIN.split(',') : [process.env.APP_ORIGIN];
+const allowedOrigins = process.env.APP_ORIGIN ? process.env.APP_ORIGIN.split(',') : [process.env.APP_ORIGIN || 'https://kalofit-personal-test.vercel.app'];
 
 const { requireAuth } = require("./middlewares/requireAuth");
 
