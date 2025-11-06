@@ -63,6 +63,7 @@ app.use(
       "Content-Type",
       "Authorization",
       "X-Requested-With",
+      "Access-Control-Allow-Origin",
       "Accept",
       "Origin",
     ],
