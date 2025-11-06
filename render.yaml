@@ -70,7 +70,7 @@ services:
     autoDeploy: true
     envVars:
       - key: VITE_API_BASE_URL
-        value: https://kalofrontend.onrender.com
+        value: https://kalofitpersonaltest.onrender.com
 
 # Managed PostgreSQL database
 databases:
